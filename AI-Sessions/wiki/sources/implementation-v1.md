@@ -28,6 +28,8 @@ sources: ["[[FirstPlan]]", "[[PROGRESS]]"]
 cd davinci-code-web && npm install && npm run dev
 ```
 
+**고정 포트**: server `3001`, client `5173`. 충돌 시 → [[errors/2026-06-18-dev-local-run]].
+
 ## 핵심 Socket 이벤트
 
 - `lobby:join` / `lobby:rejoin`

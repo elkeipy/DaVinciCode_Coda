@@ -14,6 +14,8 @@ npm run dev
 | Client | http://localhost:5173 |
 | Server | http://localhost:3001 |
 
+> repo 루트가 아닌 **이 폴더**에서 실행. 포트 충돌 시 `Get-Process node \| Stop-Process -Force` (PowerShell).
+
 ## 구조
 
 ```

@@ -19,4 +19,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-18 17:00 | save | 다빈치코드 기획 wiki 통합 — sources·dev-tasks·conversations 인수인계 | [[sources/first-plan-v0.4]], [[dev-tasks/phase-0-monorepo-setup]], [[projects/project-davinci-code]], [[conversations/2026-06-18-davinci-setup-handoff]]
 2026-06-18 18:00 | save | Phase 0~4 구현 완료 — davinci-code-web monorepo, 진행률 100% | [[PROGRESS]], [[FirstPlan]], [[projects/project-davinci-code]]
 2026-06-18 19:00 | save | 구현 v1 wiki·git 저장 — implementation-v1, dev-tasks, conversations | [[sources/implementation-v1]], [[dev-tasks/implementation-complete]], [[PROGRESS]]
+2026-06-18 20:00 | save | 로컬 dev 트러블슈팅 — 고정 포트·좀비 node 교훈 wiki 기록 | [[errors/2026-06-18-dev-local-run]], [[sources/implementation-v1]]
 

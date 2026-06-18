@@ -17,4 +17,6 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-18 14:00 | save | FirstPlan v0.3 — 정책 D1~D5 확정, 조커 배치·관전 모드 반영 | [[FirstPlan]], [[decisions/2026-06-18-game-policy]], [[concepts/game-rules]]
 2026-06-18 16:00 | save | FirstPlan v0.4 — 모바일웹 세로 UX (D6), design/mobile-ux 추가 | [[FirstPlan]], [[design/mobile-ux]], [[projects/project-davinci-code]]
 2026-06-18 17:00 | save | 다빈치코드 기획 wiki 통합 — sources·dev-tasks·conversations 인수인계 | [[sources/first-plan-v0.4]], [[dev-tasks/phase-0-monorepo-setup]], [[projects/project-davinci-code]], [[conversations/2026-06-18-davinci-setup-handoff]]
+2026-06-18 18:00 | save | Phase 0~4 구현 완료 — davinci-code-web monorepo, 진행률 100% | [[PROGRESS]], [[FirstPlan]], [[projects/project-davinci-code]]
+2026-06-18 19:00 | save | 구현 v1 wiki·git 저장 — implementation-v1, dev-tasks, conversations | [[sources/implementation-v1]], [[dev-tasks/implementation-complete]], [[PROGRESS]]
 

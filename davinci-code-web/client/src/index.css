@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: #5eead4;
+  --color-surface: #0f172a;
+  --color-surface-2: #1e293b;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--color-surface);
+  color: #f8fafc;
+  touch-action: manipulation;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}

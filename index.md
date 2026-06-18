@@ -1,33 +1,66 @@
 # AI Agent Wiki Index
 
-이 문서는 vault 전체의 지도입니다.
+이 문서는 vault 전체의 **내용 지향 카탈로그**입니다.
+에이전트는 wiki 문서를 만들거나 갱신한 뒤 반드시 이 문서에 링크를 추가합니다.
 
-에이전트는 중요한 wiki 문서를 만들거나 갱신한 뒤 이 문서에 링크를 추가해야 합니다.
+`query` 시 이 문서를 먼저 읽고 관련 페이지로 drill-down 합니다.
 
 ## Start Here
 
-- [[START_HERE]]
-- [[CLAUDE]]
-- [[AGENTS]]
+- [[START_HERE]] — 첫 실행 가이드
+- [[HowToUse]] — 사람용 운영 매뉴얼
+- [[CLAUDE]] — Claude Code 스키마
+- [[AGENTS]] — Codex/기타 에이전트 스키마
 - [[README]]
 - [[TEMPLATE_MANIFEST]]
-- [[log]]
+- [[log]] — 작업 타임라인
+
+## 설계 원칙 (Karpathy LLM Wiki)
+
+| 계층 | 경로 | 설명 |
+|------|------|------|
+| Raw | `AI-Sessions/raw/` | 불변 1차 자료. 에이전트는 읽기만 |
+| Wiki | `AI-Sessions/wiki/` | LLM이 유지하는 가공 지식. 교차참조·합성 |
+| Schema | `CLAUDE.md`, `AGENTS.md` | 구조·워크플로·저장 필터 |
+| Index | 이 문서 | 위키 카탈로그 |
+| Log | `log.md` | append-only 작업 이력 |
+
+**핵심**: 위키는 매 질문마다 재발견하지 않는 **누적 산출물**입니다.
+여러 AI 에이전트가 동일한 wiki를 공유해 업무 맥락을 이어갑니다.
 
 ## Vault Structure
 
-- `AI-Sessions/raw/`: 수정하지 않는 1차 자료
-- `AI-Sessions/conversations/`: 세션 인수인계
-- `AI-Sessions/wiki/sources/`: raw 자료 요약
-- `AI-Sessions/wiki/concepts/`: 반복 사용 개념
-- `AI-Sessions/wiki/decisions/`: 의사결정
-- `AI-Sessions/wiki/errors/`: 실패와 리스크
-- `AI-Sessions/wiki/projects/`: 프로젝트 맥락
-- `AI-Sessions/wiki/design/`: 디자인 가이드와 IA
-- `AI-Sessions/wiki/dev-tasks/`: 개발 태스크
+```
+AI-Sessions/
+├── raw/              ← 1차 자료 (읽기 전용)
+├── conversations/    ← 세션 인수인계 (임시)
+└── wiki/
+    ├── sources/      ← raw 요약
+    ├── concepts/     ← 반복 개념·엔티티
+    ├── decisions/    ← 의사결정
+    ├── errors/       ← 실패·리스크
+    ├── projects/     ← 프로젝트 맥락
+    ├── design/       ← 디자인·팀 규칙
+    └── dev-tasks/    ← 개발 태스크
+```
+
+각 폴더의 `README.md`에 용도와 저장 필터 매핑이 있습니다.
+
+## 저장 필터 (요약)
+
+wiki 저장 전 5가지 중 최소 1개 충족 필수. 상세는 [[CLAUDE]] 참조.
+
+1. 재사용 — 향후 실무 반복 사용
+2. 인수인계 — 이어받기 필수 정보
+3. 추적 — 결정 근거·결정권자
+4. 리스크 — 다시 시도하면 안 되는 실패
+5. 공통 규칙 — 팀 디자인·운영 가이드
 
 ## Projects
 
 아직 등록된 프로젝트가 없습니다.
+
+`AI-Sessions/wiki/projects/`에 프로젝트 문서를 만들고 여기에 링크를 추가하세요.
 
 ## Decisions
 
@@ -37,9 +70,21 @@
 
 아직 등록된 source 문서가 없습니다.
 
+## Concepts
+
+아직 등록된 concept 문서가 없습니다.
+
 ## Errors / Lessons
 
 아직 등록된 error 문서가 없습니다.
+
+## Design / Rules
+
+아직 등록된 design 문서가 없습니다.
+
+## Dev Tasks
+
+아직 등록된 dev-task 문서가 없습니다.
 
 ## Prompt Library
 

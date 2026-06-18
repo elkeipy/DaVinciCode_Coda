@@ -12,3 +12,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 
 ## Log
 
+2026-06-18 00:00 | save | vault 초기 세팅 — CLAUDE.md 생성, 스키마·index·폴더 README 보강 | [[CLAUDE]], [[AGENTS]], [[index]]
+

@@ -41,8 +41,19 @@ raw, wiki, conversations, index.md, log.md, Claude Code용 CLAUDE.md, Codex용 A
 
 ## 기본 명령
 
-- `save`: 현재 작업 맥락을 저장합니다.
-- `ingest`: raw 자료를 읽고 wiki 자료로 정리합니다.
-- `query`: wiki와 log를 참조해 이전 맥락을 복원합니다.
-- `lint`: vault 구조와 규칙 위반을 점검합니다.
+| 명령 | 설명 |
+|------|------|
+| `save` | 현재 작업 맥락을 wiki에 저장 (5가지 필터 통과 시) |
+| `ingest` | raw 자료를 읽고 wiki로 정리·통합 |
+| `query` | index/log/wiki를 참조해 이전 맥락 복원 |
+| `lint` | vault 구조·필터·민감정보 위반 점검 |
+
+상세 규칙은 [[CLAUDE]] 또는 [[AGENTS]]를 참조하세요.
+
+## 다음 단계
+
+1. `AI-Sessions/raw/`에 실제 자료 1건 추가
+2. 에이전트에게 `ingest` 요청
+3. `query`, `save`, `lint`로 워크플로 검증
+4. 첫 프로젝트 문서를 `wiki/projects/`에 생성
 

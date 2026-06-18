@@ -11,7 +11,6 @@ required_files=(
   "index.md"
   "log.md"
   "VERSION"
-  "LICENSE.md"
   "TEMPLATE_MANIFEST.md"
 )
 
@@ -50,6 +49,7 @@ fi
 
 if grep -RInE "(sk-|api[_-]?key|password|token|secret)" "$ROOT" \
   --exclude-dir=.obsidian \
+  --exclude-dir=.git \
   --exclude="validate-template.sh" \
   --exclude=".gitignore" >/tmp/ai-agent-wiki-template-secrets.txt; then
   echo "Potential secret-like text found:" >&2

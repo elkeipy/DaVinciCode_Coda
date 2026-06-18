@@ -13,4 +13,8 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 ## Log
 
 2026-06-18 00:00 | save | vault 초기 세팅 — CLAUDE.md 생성, 스키마·index·폴더 README 보강 | [[CLAUDE]], [[AGENTS]], [[index]]
+2026-06-18 12:00 | save | FirstPlan v0.2 룰 반영 — 흑백·조커·3~4장, wiki 프로젝트·concepts·design 갱신 | [[FirstPlan]], [[projects/project-davinci-code]], [[concepts/game-rules]]
+2026-06-18 14:00 | save | FirstPlan v0.3 — 정책 D1~D5 확정, 조커 배치·관전 모드 반영 | [[FirstPlan]], [[decisions/2026-06-18-game-policy]], [[concepts/game-rules]]
+2026-06-18 16:00 | save | FirstPlan v0.4 — 모바일웹 세로 UX (D6), design/mobile-ux 추가 | [[FirstPlan]], [[design/mobile-ux]], [[projects/project-davinci-code]]
+2026-06-18 17:00 | save | 다빈치코드 기획 wiki 통합 — sources·dev-tasks·conversations 인수인계 | [[sources/first-plan-v0.4]], [[dev-tasks/phase-0-monorepo-setup]], [[projects/project-davinci-code]], [[conversations/2026-06-18-davinci-setup-handoff]]
 

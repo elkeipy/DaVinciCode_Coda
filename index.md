@@ -13,7 +13,8 @@
 - [[AGENTS]] — Codex/기타 에이전트 스키마
 - [[README]]
 - [[FirstPlan]] — 다빈치코드 웹 개발 계획서 (v0.6, **턴 드로우 룰**)
-- [[DeployPlan]] — 배포 계획 (**완료**)
+- [[DeployPlan]] — 배포 계획 (**완료**, tag `v1.0.0`)
+- [[CHANGELOG]] — 버전 변경 이력
 - [[PROGRESS]] — 구현 진행률 **100%**
 - [[TEMPLATE_MANIFEST]]
 - [[log]] — 작업 타임라인

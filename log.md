@@ -29,4 +29,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-19 20:00 | save | 배포 Phase 4 — CORS 정규화·프로덕션 UX·Pages 스모크 | [[DeployPlan]], [[README]]
 2026-06-19 21:00 | save | 배포 완료 — 프로덕션 QA·wiki deploy-render-pages | [[DeployPlan]], [[dev-tasks/deploy-render-pages]], [[PROGRESS]]
 2026-06-19 22:00 | save | 프로토타입 v1.0.0 — git tag, CHANGELOG, GitHub Release | [[CHANGELOG]], [[README]]
+2026-06-19 23:30 | save | 서버 v2 Phase A 완료·§12 구현 전 결정 확정 — wiki·Todo-Server 갱신 | [[decisions/2026-06-19-server-v2-pre-impl]], [[dev-tasks/server-v2-phase-a-db]], [[Todo-Server]], [[projects/project-davinci-code]]
 

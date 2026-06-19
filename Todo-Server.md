@@ -26,7 +26,7 @@ sources: ["[[FirstPlan]]", "[[DeployPlan]]", "[[dev-tasks/deploy-render-pages]]"
 | 데이터 삭제 | disconnect 시 탈락 처리 | 게임 종료·방 퇴장 시만 삭제 |
 | v1 닉네임 계정 | — | **미지원** (신규 ID/PW만) |
 
-**전체 진행도**: `~8%` — Drizzle 스키마·DB 스크립트 완료, `db:setup` 1회 필요
+**전체 진행도**: `~12%` — Phase A 로컬 DB 완료, §12 구현 전 결정 확정, Phase B 대기
 
 **작업 브랜치**: `feature/server-v2-persistence` (`main`은 v1.0.0 유지)
 
@@ -292,11 +292,11 @@ games
 - [x] `.env.example` / `.env` (`DATABASE_URL`, `POSTGRES_ADMIN_URL`, `JWT_SECRET`)
 - [x] Drizzle 스키마 (`server/src/db/schema.ts`) — users, rooms, room_members, games
 - [x] `npm run db:setup` / `db:check` / `db:push` 스크립트
-- [ ] **로컬 DB 생성 완료** — `db:setup` + `db:push` (postgres 비밀번호 필요)
+- [x] **로컬 DB 생성 완료** — `db:setup` + `db:push` + `db:check` (네이티브 PG 18)
 - [ ] Render Postgres 생성 (프로덕션·스테이징)
 - [ ] `Repository` 인터페이스 + `AppStore` 연동
 
-**진행도**: ~40% (스키마·도구 준비, DB 생성 대기)
+**진행도**: ~60% (로컬 DB·스키마·도구 완료, Repository·Render DB 대기)
 
 ### Phase B — 인증 API (2~3일)
 
@@ -502,5 +502,6 @@ git merge main
 | 2026-06-19 | v1 닉네임 호환 **미지원** 확정 |
 | 2026-06-19 | `feature/server-v2-persistence` 브랜치, Docker Postgres 로컬 셋업 |
 | 2026-06-19 | §12 확정 — JWT only, 채팅 미저장·actionLog만, 자동퇴장 없음·방장 강퇴 예정 |
+| 2026-06-19 | Phase A 로컬 DB 완료 (`db:setup`/`push`/`check`), 구현 전 결정 마감 → Phase B 대기 |
 
 *마지막 갱신: 2026-06-19*

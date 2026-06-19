@@ -1,6 +1,6 @@
 # DaVinciCode_Coda
 
-다빈치코드 웹 보드게임 — 실시간 멀티플레이어 프로토타입
+다빈치코드 웹 보드게임 — 실시간 멀티플레이어 프로토타입 **v1.0.0**
 
 ## 문서
 
@@ -28,10 +28,15 @@ npm run dev
 |--|-----|
 | **플레이** | https://elkeipy.github.io/DaVinciCode_Coda/ |
 | **API** | https://davincicode-coda.onrender.com |
+| **health** | https://davincicode-coda.onrender.com/health |
+
 
 ```text
 CLIENT_ORIGIN:  https://elkeipy.github.io,http://localhost:5173
 VITE_SOCKET_URL https://davincicode-coda.onrender.com
+
 ```
 
 상세: [[DeployPlan]], [[dev-tasks/deploy-render-pages]]
+
+릴리스: [v1.0.0](https://github.com/elkeipy/DaVinciCode_Coda/releases/tag/v1.0.0) · [[CHANGELOG]]

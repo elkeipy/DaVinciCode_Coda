@@ -40,3 +40,7 @@ export function placeJokerTile(
 export function allJokersPlaced(tiles: Tile[]): boolean {
   return tiles.filter((t) => t.value === 'joker').every((t) => t.jokerPlaced === true);
 }
+
+export function hasUnplacedJoker(tiles: Tile[]): boolean {
+  return tiles.some((t) => t.value === 'joker' && !t.jokerPlaced);
+}

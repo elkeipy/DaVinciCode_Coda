@@ -85,6 +85,7 @@ export default function EntryPage() {
   };
 
   return (
+    <>
     <main className="flex flex-1 flex-col items-center justify-center px-6">
       <h1 className="text-3xl font-bold text-primary mb-2">Da Vinci Code</h1>
       <p className="text-slate-400 mb-8 text-center">다빈치코드 웹 보드게임</p>
@@ -119,5 +120,13 @@ export default function EntryPage() {
         </button>
       </form>
     </main>
+    <footer
+      className="fixed bottom-4 right-4 text-right text-xs text-slate-500 pointer-events-none select-none"
+      aria-label="앱 정보"
+    >
+      <p>모래놀이터</p>
+      <p>{import.meta.env.VITE_APP_VERSION}</p>
+    </footer>
+    </>
   );
 }

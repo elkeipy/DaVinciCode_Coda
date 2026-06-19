@@ -40,6 +40,19 @@ export function createFullDeck(): Tile[] {
   return tiles;
 }
 
+/** 전체 덱: 숫자 0~11 × 흰/검 24장 + 조커 흰/검 2장 = 26장 */
+export const FULL_DECK_SIZE = 26;
+
+export function sortDrawPileForDisplay(tiles: Tile[]): Tile[] {
+  const rank = (tile: Tile): number => {
+    if (tile.value === 'joker') {
+      return 100 + (tile.color === 'black' ? 0 : 1);
+    }
+    return tile.value * 2 + (tile.color === 'black' ? 0 : 1);
+  };
+  return [...tiles].sort((a, b) => rank(a) - rank(b));
+}
+
 export function shuffleDeck<T>(items: T[]): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {

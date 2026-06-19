@@ -53,6 +53,10 @@ export interface GameState {
   canContinueTurn: boolean;
   /** 오답·더미 소진 시 본인 타일 선택 패널티 대기 */
   pendingPenalty: string | null;
+  /** 드로우 후 대기 종료 시각(ms). null이면 대기 없음 */
+  drawCooldownEndsAt: number | null;
+  /** 추리 제한 종료 시각(ms). null이면 제한 없음 */
+  guessDeadlineEndsAt: number | null;
 }
 
 export interface PlayerSession {

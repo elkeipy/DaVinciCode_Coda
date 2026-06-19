@@ -13,14 +13,18 @@ import type {
 } from '@davinci/shared';
 import {
   MAX_PLAYERS,
-  allPlayersJokerReady,
   applyPass,
   applyPenaltyTile,
+  applyGuessTimeout,
   dealTiles,
+  DRAW_COOLDOWN_MS,
   enterPlayingPhase,
   evaluateGuess,
+  isDrawCooldownActive,
+  isGuessDeadlineActive,
   markJokerReady,
   placeJokerTile,
+  resolveDrawCooldown,
   sortTiles,
 } from '@davinci/shared';
 
@@ -32,6 +36,165 @@ export class AppStore {
   lobbyChats: ChatMessage[] = [];
   roomChats = new Map<string, ChatMessage[]>();
   nicknameCounts = new Map<string, number>();
+  private drawCooldownTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private guessDeadlineTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private onGameTimerComplete: ((roomId: string) => void) | null = null;
+
+  setGameTimerHandler(handler: (roomId: string) => void): void {
+    this.onGameTimerComplete = handler;
+  }
+
+  /** @deprecated use setGameTimerHandler */
+  setDrawCooldownHandler(handler: (roomId: string) => void): void {
+    this.setGameTimerHandler(handler);
+  }
+
+  private clearDrawCooldownTimer(roomId: string): void {
+    const timer = this.drawCooldownTimers.get(roomId);
+    if (timer) {
+      clearTimeout(timer);
+      this.drawCooldownTimers.delete(roomId);
+    }
+  }
+
+  private clearGuessDeadlineTimer(roomId: string): void {
+    const timer = this.guessDeadlineTimers.get(roomId);
+    if (timer) {
+      clearTimeout(timer);
+      this.guessDeadlineTimers.delete(roomId);
+    }
+  }
+
+  private clearAllGameTimers(roomId: string): void {
+    this.clearDrawCooldownTimer(roomId);
+    this.clearGuessDeadlineTimer(roomId);
+  }
+
+  private scheduleDrawCooldown(roomId: string): void {
+    const game = this.games.get(roomId);
+    if (!game?.drawCooldownEndsAt) {
+      return;
+    }
+    this.clearDrawCooldownTimer(roomId);
+    const remaining = game.drawCooldownEndsAt - Date.now();
+    if (remaining <= 0) {
+      this.finishDrawCooldown(roomId);
+      return;
+    }
+    const timer = setTimeout(() => {
+      this.drawCooldownTimers.delete(roomId);
+      this.finishDrawCooldown(roomId);
+      this.onGameTimerComplete?.(roomId);
+    }, remaining);
+    this.drawCooldownTimers.set(roomId, timer);
+  }
+
+  private scheduleGuessDeadline(roomId: string): void {
+    const game = this.games.get(roomId);
+    if (!game?.guessDeadlineEndsAt) {
+      return;
+    }
+    this.clearGuessDeadlineTimer(roomId);
+    const remaining = game.guessDeadlineEndsAt - Date.now();
+    if (remaining <= 0) {
+      this.finishGuessDeadline(roomId);
+      return;
+    }
+    const timer = setTimeout(() => {
+      this.guessDeadlineTimers.delete(roomId);
+      this.finishGuessDeadline(roomId);
+      this.onGameTimerComplete?.(roomId);
+    }, remaining);
+    this.guessDeadlineTimers.set(roomId, timer);
+  }
+
+  syncGameTimers(roomId: string): void {
+    this.ensureDrawCooldownScheduled(roomId);
+    this.ensureGuessDeadlineScheduled(roomId);
+  }
+
+  ensureDrawCooldownScheduled(roomId: string): void {
+    const game = this.games.get(roomId);
+    if (!game?.drawCooldownEndsAt) {
+      return;
+    }
+    if (Date.now() >= game.drawCooldownEndsAt) {
+      this.finishDrawCooldown(roomId);
+      this.onGameTimerComplete?.(roomId);
+      return;
+    }
+    if (!this.drawCooldownTimers.has(roomId)) {
+      this.scheduleDrawCooldown(roomId);
+    }
+  }
+
+  ensureGuessDeadlineScheduled(roomId: string): void {
+    const game = this.games.get(roomId);
+    if (!game?.guessDeadlineEndsAt) {
+      return;
+    }
+    if (Date.now() >= game.guessDeadlineEndsAt) {
+      this.finishGuessDeadline(roomId);
+      this.onGameTimerComplete?.(roomId);
+      return;
+    }
+    if (!this.guessDeadlineTimers.has(roomId)) {
+      this.scheduleGuessDeadline(roomId);
+    }
+  }
+
+  private finishDrawCooldown(roomId: string): void {
+    const game = this.games.get(roomId);
+    if (!game || game.drawCooldownEndsAt === null) {
+      return;
+    }
+    const updated = resolveDrawCooldown(game);
+    this.games.set(roomId, updated);
+    this.afterGameStateChange(roomId, updated);
+  }
+
+  private finishGuessDeadline(roomId: string): void {
+    const game = this.games.get(roomId);
+    if (!game || game.guessDeadlineEndsAt === null) {
+      return;
+    }
+    const updated = applyGuessTimeout(game);
+    this.games.set(roomId, updated);
+    if (updated.drawCooldownEndsAt) {
+      this.scheduleDrawCooldown(roomId);
+    } else if (updated.guessDeadlineEndsAt) {
+      this.scheduleGuessDeadline(roomId);
+    }
+    const room = this.rooms.get(roomId);
+    if (room && updated.phase === 'finished') {
+      room.status = 'finished';
+    }
+  }
+
+  private assertDrawCooldownComplete(roomId: string): void {
+    this.ensureDrawCooldownScheduled(roomId);
+    const game = this.games.get(roomId);
+    if (game && isDrawCooldownActive(game)) {
+      throw new Error('드로우 확인 중입니다. 잠시 후 다시 시도하세요.');
+    }
+  }
+
+  private assertGuessDeadlineComplete(roomId: string): void {
+    this.ensureGuessDeadlineScheduled(roomId);
+    const game = this.games.get(roomId);
+    if (game && isGuessDeadlineActive(game)) {
+      return;
+    }
+  }
+
+  private afterGameStateChange(roomId: string, game: GameState): void {
+    if (game.drawCooldownEndsAt) {
+      this.scheduleDrawCooldown(roomId);
+    }
+    if (game.guessDeadlineEndsAt) {
+      this.scheduleGuessDeadline(roomId);
+    }
+  }
 
   createUniqueNickname(nickname: string): string {
     const count = this.nicknameCounts.get(nickname) ?? 0;
@@ -81,21 +244,6 @@ export class AppStore {
     }
     this.socketToSession.delete(socketId);
     if (session.roomId) {
-      const room = this.rooms.get(session.roomId);
-      if (room?.status === 'playing') {
-        const game = this.games.get(session.roomId);
-        if (game) {
-          const board = game.boards[session.sessionId];
-          if (board && !board.eliminated) {
-            game.boards[session.sessionId] = {
-              ...board,
-              eliminated: true,
-              spectator: true,
-              tiles: board.tiles.map((t) => ({ ...t, revealed: true })),
-            };
-          }
-        }
-      }
       this.leaveRoom(session.sessionId);
     }
     return session;
@@ -173,6 +321,15 @@ export class AppStore {
     return room;
   }
 
+  abortGame(roomId: string): void {
+    this.clearAllGameTimers(roomId);
+    this.games.delete(roomId);
+    const room = this.rooms.get(roomId);
+    if (room) {
+      room.status = 'waiting';
+    }
+  }
+
   leaveRoom(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (!session?.roomId) {
@@ -183,20 +340,19 @@ export class AppStore {
       session.roomId = null;
       return;
     }
+    const wasPlaying = room.status === 'playing';
+    if (wasPlaying) {
+      this.abortGame(room.roomId);
+    }
     room.playerIds = room.playerIds.filter((id) => id !== sessionId);
     session.roomId = null;
     if (room.playerIds.length === 0) {
       this.rooms.delete(room.roomId);
-      this.games.delete(room.roomId);
       this.roomChats.delete(room.roomId);
       return;
     }
     if (room.hostSessionId === sessionId) {
       room.hostSessionId = room.playerIds[0];
-    }
-    if (room.status === 'playing') {
-      this.games.delete(room.roomId);
-      room.status = 'waiting';
     }
   }
 
@@ -267,13 +423,14 @@ export class AppStore {
         jokerReady: !hasJoker,
       };
     });
-    const hasJokerSetup = Object.values(boards).some((b) => !b.jokerReady);
+    const hasInitialJoker = Object.values(boards).some((b) => !b.jokerReady);
+    const now = Date.now();
     let game: GameState = {
       roomId,
       boards,
       turnOrder: [...room.playerIds],
       currentTurnIndex: 0,
-      phase: hasJokerSetup ? 'joker_setup' : 'playing',
+      phase: 'playing',
       winnerId: null,
       winnerNickname: null,
       actionLog: [],
@@ -281,12 +438,15 @@ export class AppStore {
       drawnTileId: null,
       canContinueTurn: false,
       pendingPenalty: null,
+      drawCooldownEndsAt: hasInitialJoker ? now + DRAW_COOLDOWN_MS : null,
+      guessDeadlineEndsAt: null,
     };
-    if (!hasJokerSetup) {
+    if (!hasInitialJoker) {
       game = enterPlayingPhase(game);
     }
     room.status = 'playing';
     this.games.set(roomId, game);
+    this.afterGameStateChange(roomId, game);
     return game;
   }
 
@@ -300,22 +460,30 @@ export class AppStore {
     if (!game) {
       throw new Error('Game not found');
     }
+    if (!isDrawCooldownActive(game)) {
+      throw new Error('조커 배치 시간이 종료되었습니다.');
+    }
     const board = game.boards[sessionId];
     if (!board) {
       throw new Error('Player not in game');
     }
-    const joker = board.tiles.find((t) => t.value === 'joker');
+    if (game.drawnTileId) {
+      const currentId = game.turnOrder[game.currentTurnIndex];
+      if (sessionId !== currentId) {
+        throw new Error('Not your turn');
+      }
+    }
+    const joker = game.drawnTileId
+        ? board.tiles.find(
+            (t) => t.id === game.drawnTileId && t.value === 'joker' && !t.jokerPlaced,
+          )
+        : board.tiles.find((t) => t.value === 'joker' && !t.jokerPlaced);
     if (!joker) {
       throw new Error('No joker to place');
     }
     const newTiles = placeJokerTile(board.tiles, joker.id, assignedValue, position);
     const updatedBoard = markJokerReady({ ...board, tiles: newTiles });
     game.boards[sessionId] = updatedBoard;
-    if (allPlayersJokerReady(game.boards)) {
-      const playing = enterPlayingPhase({ ...game, phase: 'playing' });
-      this.games.set(roomId, playing);
-      return playing;
-    }
     this.games.set(roomId, game);
     return game;
   }
@@ -327,7 +495,13 @@ export class AppStore {
     tileIndex: number,
     claim: { type: 'number'; value: NumberValue } | { type: 'joker' },
   ): GameState {
-    const game = this.games.get(roomId);
+    let game = this.games.get(roomId);
+    if (!game || game.phase !== 'playing') {
+      throw new Error('Game not in playing phase');
+    }
+    this.assertDrawCooldownComplete(roomId);
+    this.assertGuessDeadlineComplete(roomId);
+    game = this.games.get(roomId);
     if (!game || game.phase !== 'playing') {
       throw new Error('Game not in playing phase');
     }
@@ -342,8 +516,12 @@ export class AppStore {
     if (guesser.eliminated || guesser.spectator) {
       throw new Error('Cannot act while spectating');
     }
+    if (guesser.tiles.some((t) => t.value === 'joker' && !t.jokerPlaced)) {
+      throw new Error('조커 숫자를 먼저 선택하세요');
+    }
     const { game: updated } = evaluateGuess(game, guesserId, targetId, tileIndex, claim);
     this.games.set(roomId, updated);
+    this.afterGameStateChange(roomId, updated);
     const room = this.rooms.get(roomId);
     if (room && updated.phase === 'finished') {
       room.status = 'finished';
@@ -352,7 +530,13 @@ export class AppStore {
   }
 
   pass(roomId: string, sessionId: string): GameState {
-    const game = this.games.get(roomId);
+    let game = this.games.get(roomId);
+    if (!game || game.phase !== 'playing') {
+      throw new Error('Game not in playing phase');
+    }
+    this.assertDrawCooldownComplete(roomId);
+    this.assertGuessDeadlineComplete(roomId);
+    game = this.games.get(roomId);
     if (!game || game.phase !== 'playing') {
       throw new Error('Game not in playing phase');
     }
@@ -369,6 +553,7 @@ export class AppStore {
     }
     const updated = applyPass(game, sessionId);
     this.games.set(roomId, updated);
+    this.afterGameStateChange(roomId, updated);
     const room = this.rooms.get(roomId);
     if (room && updated.phase === 'finished') {
       room.status = 'finished';
@@ -383,6 +568,7 @@ export class AppStore {
     }
     const updated = applyPenaltyTile(game, sessionId, tileId);
     this.games.set(roomId, updated);
+    this.afterGameStateChange(roomId, updated);
     const room = this.rooms.get(roomId);
     if (room && updated.phase === 'finished') {
       room.status = 'finished';
@@ -395,7 +581,6 @@ export class AppStore {
     if (!room || room.hostSessionId !== hostSessionId) {
       throw new Error('Only host can reset');
     }
-    room.status = 'waiting';
-    this.games.delete(roomId);
+    this.abortGame(roomId);
   }
 }

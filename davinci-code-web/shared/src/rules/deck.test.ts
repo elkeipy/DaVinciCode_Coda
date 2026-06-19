@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { getDealCount, tileMatchesClaim } from './deck.js';
+import { createFullDeck, getDealCount, resetTileIdCounter, tileMatchesClaim } from './deck.js';
+
+describe('createFullDeck', () => {
+  it('has 26 tiles (0-11 white/black + 2 jokers)', () => {
+    resetTileIdCounter();
+    const deck = createFullDeck();
+    expect(deck).toHaveLength(26);
+    expect(deck.filter((t) => t.value !== 'joker')).toHaveLength(24);
+    expect(deck.filter((t) => t.value === 'joker')).toHaveLength(2);
+  });
+});
 
 describe('getDealCount', () => {
   it('returns 4 for 2-3 players', () => {

@@ -1,6 +1,34 @@
 import type { GameAction, GameState, GuessClaim, NumberValue, PlayerBoard, Tile } from '../types.js';
+import { DRAW_COOLDOWN_MS, GUESS_TIMEOUT_MS } from '../config.js';
 import { drawFromPile, tileMatchesClaim } from './deck.js';
-import { allJokersPlaced, sortTiles } from './sort.js';
+import { pickRandomJokerValue } from './jokerAssign.js';
+import { allJokersPlaced, placeJokerTile, sortTiles } from './sort.js';
+
+export function isDrawCooldownActive(game: GameState, now = Date.now()): boolean {
+  return game.drawCooldownEndsAt !== null && now < game.drawCooldownEndsAt;
+}
+
+export function isGuessDeadlineActive(game: GameState, now = Date.now()): boolean {
+  return game.guessDeadlineEndsAt !== null && now < game.guessDeadlineEndsAt;
+}
+
+export function startGuessDeadline(game: GameState, now = Date.now()): GameState {
+  if (game.phase !== 'playing' || game.pendingPenalty) {
+    return { ...game, guessDeadlineEndsAt: null };
+  }
+  if (isDrawCooldownActive(game, now)) {
+    return { ...game, guessDeadlineEndsAt: null };
+  }
+  const currentId = game.turnOrder[game.currentTurnIndex];
+  const board = game.boards[currentId];
+  if (!board || board.eliminated || board.spectator) {
+    return { ...game, guessDeadlineEndsAt: null };
+  }
+  if (board.tiles.some((t) => t.value === 'joker' && !t.jokerPlaced)) {
+    return { ...game, guessDeadlineEndsAt: null };
+  }
+  return { ...game, guessDeadlineEndsAt: now + GUESS_TIMEOUT_MS };
+}
 
 export function pickRandomHiddenTile(tiles: Tile[]): Tile | null {
   const hidden = tiles.filter((t) => !t.revealed);
@@ -52,10 +80,14 @@ export function advanceTurn(game: GameState): GameState {
       break;
     }
   }
-  return { ...game, currentTurnIndex: nextIndex, drawnTileId: null, pendingPenalty: null, canContinueTurn: false };
+  return { ...game, currentTurnIndex: nextIndex, drawnTileId: null, pendingPenalty: null, canContinueTurn: false, drawCooldownEndsAt: null, guessDeadlineEndsAt: null };
 }
 
-export function beginTurn(game: GameState): GameState {
+export function beginTurn(
+  game: GameState,
+  now = Date.now(),
+  options?: { skipDrawCooldown?: boolean },
+): GameState {
   if (game.phase !== 'playing' || game.pendingPenalty) {
     return game;
   }
@@ -65,15 +97,24 @@ export function beginTurn(game: GameState): GameState {
     return game;
   }
   if (game.drawPile.length === 0) {
-    return { ...game, drawnTileId: null, canContinueTurn: false };
+    return startGuessDeadline({
+      ...game,
+      drawnTileId: null,
+      canContinueTurn: false,
+      drawCooldownEndsAt: null,
+      guessDeadlineEndsAt: null,
+    }, now);
   }
   const { tile, remaining } = drawFromPile(game.drawPile);
   const newTiles = sortTiles([...board.tiles, { ...tile, position: board.tiles.length }]);
+  const skipDrawCooldown = options?.skipDrawCooldown ?? false;
   return {
     ...game,
     drawPile: remaining,
     drawnTileId: tile.id,
     canContinueTurn: false,
+    drawCooldownEndsAt: skipDrawCooldown ? null : now + DRAW_COOLDOWN_MS,
+    guessDeadlineEndsAt: null,
     boards: { ...game.boards, [currentId]: { ...board, tiles: newTiles } },
   };
 }
@@ -127,7 +168,7 @@ export function evaluateGuess(
       tiles: revealTile(targetBoard.tiles, targetTile.id),
     });
     logText = `${guesserBoard.nickname} → ${targetBoard.nickname} [${tileIndex + 1}] = ${claimLabel} ✓`;
-    let updated = appendAction({ ...game, boards }, logText);
+    let updated = appendAction({ ...game, boards, guessDeadlineEndsAt: null }, logText);
     updated = { ...updated, canContinueTurn: true };
     const winner = getWinner(updated);
     if (winner) {
@@ -138,11 +179,13 @@ export function evaluateGuess(
         winnerNickname: winner.winnerNickname,
         canContinueTurn: false,
       };
+      return { game: updated, log: logText };
     }
+    updated = startGuessDeadline(updated, Date.now());
     return { game: updated, log: logText };
   }
   logText = `${guesserBoard.nickname} → ${targetBoard.nickname} [${tileIndex + 1}] = ${claimLabel} ✗`;
-  let updated = appendAction({ ...game, boards }, logText);
+  let updated = appendAction({ ...game, boards, guessDeadlineEndsAt: null, canContinueTurn: false }, logText);
   if (updated.drawnTileId) {
     const penaltyId = updated.drawnTileId;
     boards = {
@@ -198,7 +241,7 @@ export function applyPass(game: GameState, sessionId: string): GameState {
     throw new Error('Invalid player');
   }
   const logText = `${board.nickname} 패스`;
-  let updated = appendAction({ ...game, canContinueTurn: false }, logText);
+  let updated = appendAction({ ...game, canContinueTurn: false, guessDeadlineEndsAt: null }, logText);
   updated = finalizeAfterTurn(updated);
   return updated;
 }
@@ -215,15 +258,103 @@ export function markJokerReady(board: PlayerBoard): PlayerBoard {
   return { ...board, jokerReady: allJokersPlaced(board.tiles) };
 }
 
-export function buildPlayerView(game: GameState, viewerId: string): Record<string, PlayerBoard> {
+export function applyGuessTimeout(game: GameState, now = Date.now()): GameState {
+  if (game.guessDeadlineEndsAt === null || now < game.guessDeadlineEndsAt) {
+    return game;
+  }
+  if (game.phase !== 'playing' || game.pendingPenalty) {
+    return { ...game, guessDeadlineEndsAt: null };
+  }
+  const guesserId = game.turnOrder[game.currentTurnIndex];
+  const guesserBoard = game.boards[guesserId];
+  if (!guesserBoard) {
+    return { ...game, guessDeadlineEndsAt: null };
+  }
+  const logText = `${guesserBoard.nickname} 시간 초과 ✗`;
+  let updated = appendAction(
+    { ...game, guessDeadlineEndsAt: null, canContinueTurn: false },
+    logText,
+  );
+  if (updated.drawnTileId) {
+    const boards = {
+      ...updated.boards,
+      [guesserId]: checkElimination({
+        ...guesserBoard,
+        tiles: revealTile(guesserBoard.tiles, updated.drawnTileId),
+      }),
+    };
+    updated = { ...updated, boards };
+    return finalizeAfterTurn(updated);
+  }
+  return { ...updated, pendingPenalty: guesserId };
+}
+
+export function resolveAllUnplacedJokers(game: GameState): GameState {
+  let boards = { ...game.boards };
+  for (const [playerId, board] of Object.entries(boards)) {
+    const joker = board.tiles.find((t) => t.value === 'joker' && !t.jokerPlaced);
+    if (!joker) {
+      continue;
+    }
+    const assignedValue = pickRandomJokerValue({ ...game, boards }, playerId);
+    const newTiles = placeJokerTile(board.tiles, joker.id, assignedValue, 0);
+    boards[playerId] = markJokerReady({ ...board, tiles: newTiles });
+  }
+  return { ...game, boards };
+}
+
+export function resolveDrawCooldown(game: GameState, now = Date.now()): GameState {
+  if (game.drawCooldownEndsAt === null) {
+    return game;
+  }
+  let updated: GameState = { ...game, drawCooldownEndsAt: null };
+
+  if (updated.drawnTileId === null) {
+    updated = resolveAllUnplacedJokers(updated);
+    updated = beginTurn(updated, now, { skipDrawCooldown: true });
+    if (isDrawCooldownActive(updated, now)) {
+      return updated;
+    }
+    return startGuessDeadline(updated, now);
+  }
+
+  const currentId = game.turnOrder[game.currentTurnIndex];
+  const board = updated.boards[currentId];
+  if (!board) {
+    return startGuessDeadline(updated, now);
+  }
+  const joker = board.tiles.find(
+    (t) => t.id === updated.drawnTileId && t.value === 'joker' && !t.jokerPlaced,
+  );
+  if (joker) {
+    const assignedValue = pickRandomJokerValue(updated, currentId);
+    const newTiles = placeJokerTile(board.tiles, joker.id, assignedValue, 0);
+    updated = {
+      ...updated,
+      boards: {
+        ...updated.boards,
+        [currentId]: markJokerReady({ ...board, tiles: newTiles }),
+      },
+    };
+  }
+  return startGuessDeadline(updated, now);
+}
+
+export function buildPlayerView(game: GameState, viewerId: string, now = Date.now()): Record<string, PlayerBoard> {
+  const currentId = game.turnOrder[game.currentTurnIndex];
+  const hideDrawnTile = isDrawCooldownActive(game, now) && game.drawnTileId !== null;
   const result: Record<string, PlayerBoard> = {};
   for (const [id, board] of Object.entries(game.boards)) {
+    let tiles = board.tiles;
+    if (hideDrawnTile && id === currentId && viewerId !== currentId) {
+      tiles = board.tiles.filter((t) => t.id !== game.drawnTileId);
+    }
     if (id === viewerId) {
-      result[id] = board;
+      result[id] = { ...board, tiles };
     } else {
       result[id] = {
         ...board,
-        tiles: board.tiles.map((t) =>
+        tiles: tiles.map((t) =>
           t.revealed
             ? t
             : {

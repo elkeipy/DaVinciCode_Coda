@@ -6,6 +6,7 @@ interface Props {
   isOwn: boolean;
   isCurrentTurn: boolean;
   selectedIndex?: number | null;
+  drawnTileId?: string | null;
   onTileSelect?: (index: number) => void;
   canSelect?: boolean;
 }
@@ -15,6 +16,7 @@ export default function PlayerBoardView({
   isOwn,
   isCurrentTurn,
   selectedIndex,
+  drawnTileId,
   onTileSelect,
   canSelect,
 }: Props) {
@@ -25,18 +27,20 @@ export default function PlayerBoardView({
         {board.spectator && <span className="text-xs text-amber-400">관전</span>}
         {isCurrentTurn && <span className="text-xs text-primary">턴</span>}
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex gap-1 overflow-x-auto py-1">
         {board.tiles.map((tile, index) => (
-          <Tile
-            key={tile.id}
-            tile={tile}
-            isOwn={isOwn}
-            selected={selectedIndex === index}
-            disabled={!canSelect || tile.revealed}
-            onSelect={
-              canSelect && !tile.revealed && onTileSelect ? () => onTileSelect(index) : undefined
-            }
-          />
+          <div key={tile.id} className="shrink-0 p-1">
+            <Tile
+              tile={tile}
+              isOwn={isOwn}
+              selected={selectedIndex === index}
+              isDrawnThisTurn={drawnTileId === tile.id}
+              disabled={!canSelect || tile.revealed}
+              onSelect={
+                canSelect && !tile.revealed && onTileSelect ? () => onTileSelect(index) : undefined
+              }
+            />
+          </div>
         ))}
       </div>
     </div>

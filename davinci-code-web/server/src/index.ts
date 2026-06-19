@@ -24,6 +24,9 @@ const io = new Server(httpServer, {
 });
 
 const store = new AppStore();
+store.setGameTimerHandler((roomId) => {
+  emitGame(roomId);
+});
 
 function emitLobby(): void {
   io.emit('lobby:state', store.getLobbyState());
@@ -42,14 +45,20 @@ function emitGame(roomId: string): void {
   if (!game || !room) {
     return;
   }
+  store.ensureDrawCooldownScheduled(roomId);
+  store.ensureGuessDeadlineScheduled(roomId);
+  const currentGame = store.games.get(roomId);
+  if (!currentGame) {
+    return;
+  }
   for (const sessionId of room.playerIds) {
     const session = store.sessions.get(sessionId);
     if (!session) {
       continue;
     }
     io.to(session.socketId).emit('game:state', {
-      gameState: game,
-      playerView: buildPlayerView(game, sessionId),
+      gameState: currentGame,
+      playerView: buildPlayerView(currentGame, sessionId),
       mySessionId: sessionId,
     });
   }
@@ -144,10 +153,14 @@ io.on('connection', (socket) => {
       return;
     }
     const roomId = session.roomId;
+    const wasPlaying = store.rooms.get(roomId)?.status === 'playing';
     socket.leave(`room:${roomId}`);
     store.leaveRoom(session.sessionId);
     emitLobby();
     emitRoom(roomId);
+    if (wasPlaying) {
+      io.to(`room:${roomId}`).emit('game:state', null);
+    }
   });
 
   socket.on('chat:send', ({ scope, text, roomId }: { scope: 'lobby' | 'room'; text: string; roomId?: string }) => {
@@ -259,8 +272,17 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    const session = store.getSessionBySocket(socket.id);
+    const roomId = session?.roomId;
+    const wasPlaying = roomId ? store.rooms.get(roomId)?.status === 'playing' : false;
     store.removeSocket(socket.id);
     emitLobby();
+    if (roomId) {
+      emitRoom(roomId);
+      if (wasPlaying) {
+        io.to(`room:${roomId}`).emit('game:state', null);
+      }
+    }
   });
 });
 

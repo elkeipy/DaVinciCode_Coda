@@ -26,7 +26,7 @@ sources: ["[[FirstPlan]]", "[[DeployPlan]]", "[[dev-tasks/deploy-render-pages]]"
 | 데이터 삭제 | disconnect 시 탈락 처리 | 게임 종료·방 퇴장 시만 삭제 |
 | v1 닉네임 계정 | — | **미지원** (신규 ID/PW만) |
 
-**전체 진행도**: `~3%` — 브랜치·로컬 DB 준비 완료, Drizzle 미착수
+**전체 진행도**: `~8%` — Drizzle 스키마·DB 스크립트 완료, `db:setup` 1회 필요
 
 **작업 브랜치**: `feature/server-v2-persistence` (`main`은 v1.0.0 유지)
 
@@ -73,8 +73,8 @@ FirstPlan §3.3에서 PostgreSQL·JWT를 **의도적 제외**했으나, Todo 목
 | ID | 요구사항 | 우선순위 |
 |----|----------|----------|
 | R-S1 | 로그인 후 **방 소속·게임 진행 상태** DB에서 조회 | P0 |
-| R-S2 | 복구 시 `room:state`, `game:state`, `chat:history` 재전송 | P0 |
-| R-S3 | 슬립으로 인한 **일시 disconnect는 탈락 처리하지 않음** | P0 |
+| R-S2 | 복구 시 `room:state`, `game:state` 재전송 (`actionLog` 포함). 채팅 히스토리 복구 **없음** | P0 |
+| R-S3 | 슬립·disconnect 시 **자동 퇴장·탈락 없음** (방장 강퇴만 별도 구현 예정) | P0 |
 | R-S4 | 서버 기동 시 DB에서 **진행 중 방·게임** 메모리로 hydrate | P0 |
 
 ### 3.3 데이터 생명주기
@@ -83,8 +83,8 @@ FirstPlan §3.3에서 PostgreSQL·JWT를 **의도적 제외**했으나, Todo 목
 |----|----------|----------|
 | R-D1 | **게임 종료** 시 해당 `game` 레코드 삭제 (또는 archived) | P0 |
 | R-D2 | **방 퇴장** 시 해당 플레이어의 방·게임 참여 정보 삭제 | P0 |
-| R-D3 | 로비 채팅은 영속화 **선택** (기본: 미저장) | P2 |
-| R-D4 | 방 채팅은 방 존재 기간만 저장 | P1 |
+| R-D3 | 로비·방 **채팅** 영속화 **없음** | ✅ 확정 |
+| R-D4 | **게임 진행 로그**(`GameState.actionLog`)만 `state_json`에 포함·게임 종료 시 함께 삭제 | P0 |
 
 ### 3.4 인증 (ID/PW)
 
@@ -95,6 +95,14 @@ FirstPlan §3.3에서 PostgreSQL·JWT를 **의도적 제외**했으나, Todo 목
 | R-A3 | Socket 연결 시 토큰으로 사용자 식별 (`lobby:join` 대체) | P0 |
 | R-A4 | 비밀번호 **단방향 해시** 저장 (평문 저장 금지) | P0 |
 | R-A5 | 로그아웃·세션 만료 | P1 |
+
+### 3.5 방장 강퇴 (예정)
+
+| ID | 요구사항 | 우선순위 |
+|----|----------|----------|
+| R-K1 | 방장이 플레이어 **강퇴** (`room:kick` 등) | P1 (v2.0 이후 가능) |
+
+> **자동 퇴장**(disconnect N분 후 방에서 제거)은 **계획 없음**.
 
 > **v1 닉네임 로그인 호환 없음** — v2.0부터 ID/PW만 지원 (§12 확정)
 
@@ -179,7 +187,7 @@ FirstPlan §3.3에서 PostgreSQL·JWT를 **의도적 제외**했으나, Todo 목
 로그인:   bcrypt.compare(input, storedHash)
 ```
 
-### 6.2 세션 모델 (제안)
+### 6.2 세션 모델 — **JWT 확정**
 
 ```text
 [회원가입/로그인] → HTTP POST /auth/login → { token, userId, displayName }
@@ -189,11 +197,29 @@ FirstPlan §3.3에서 PostgreSQL·JWT를 **의도적 제외**했으나, Todo 목
 | 저장소 | 내용 |
 |--------|------|
 | `users` | id, login_id, password_hash, display_name, created_at |
-| `auth_sessions` | token_hash, user_id, expires_at (JWT-only 시 생략 가능) |
-| `player_sessions` | user_id, room_id, socket_id(휘발), last_seen |
 
-- **JWT**: stateless, 슬립 후 userId 복원 용이. `JWT_SECRET` env 필수.
-- **DB 세션**: revoke·강제 로그아웃 용이. (미결정 §12)
+- **✅ JWT only** — `auth_sessions` DB 테이블 **없음** (단순·Render 슬립 후에도 stateless 복원)
+- `JWT_SECRET` env, 만료 예: 7일 (`exp` claim)
+- 로그아웃: 클라이언트 token 삭제 (서버 블랙리스트는 v2 범위 외)
+
+#### JWT란? (요약)
+
+**JSON Web Token** — 로그인 성공 시 서버가 주는 **서명된 문자열 신분증**.
+
+```text
+eyJhbGciOiJIUzI1NiIs...  ← 점(.)으로 이어진 긴 문자열
+```
+
+| 특징 | 설명 |
+|------|------|
+| 내용 | `userId`, `loginId`, 만료시간 등 (JSON → Base64) |
+| 서명 | 서버만 아는 `JWT_SECRET`으로 위조 방지 |
+| 저장 | 클라 localStorage `davinci_token` (또는 메모리) |
+| 사용 | API·Socket 요청마다 "나 userId=xxx" 증명 |
+
+**왜 쓰나**: DB에 세션 행을 안 남겨도 됨. Render 슬립 후 서버가 깨어나도 토큰만 검증하면 사용자 식별 가능.
+
+**세션 DB 대비 단점**: 토큰 탈취 시 만료 전까지 revoke 어려움 → v2에서는 로그아웃=클라 삭제로 충분.
 
 ### 6.3 loginId vs displayName
 
@@ -216,20 +242,21 @@ room_members
 
 games
   id, room_id, state_json (JSONB), phase, schema_version, updated_at
-
-room_chats (선택)
-  id, room_id, user_id, text, created_at
+  -- state_json.actionLog = 게임 진행 로그 (채팅 아님)
 ```
 
-- **`state_json`**: `GameState` 직렬화. 룰 판정은 `shared/rules` 유지.
+- **`state_json`**: `GameState` 직렬화 (`actionLog` 포함). 룰 판정은 `shared/rules` 유지.
+- **채팅**(`lobbyChats`, `roomChats`): 영속화 **안 함** — 재접속 시 빈 상태.
 - **`schema_version`**: JSONB 스키마 변경 시 마이그레이션용 (NF-2).
 
 ### 7.1 삭제 정책
 
 | 이벤트 | DB 동작 |
 |--------|---------|
-| `game:reset` / 게임 종료 후 대기 | `games` 삭제 |
-| `room:leave` | `room_members` 삭제; 빈 방이면 `rooms`·`games`·`room_chats` 정리 |
+| `game:reset` / 게임 종료 후 대기 | `games` 삭제 (`actionLog` 포함) |
+| `room:leave` | `room_members` 삭제; 빈 방이면 `rooms`·`games` 정리 |
+| disconnect / 슬립 | **자동 퇴장 없음** — `room_members` 유지 |
+| `room:kick` (예정) | 방장 강퇴 시에만 `room_members` 삭제 |
 | 회원 탈퇴 (추후) | cascade 또는 soft delete |
 
 ---
@@ -261,14 +288,15 @@ room_chats (선택)
 ### Phase A — 인프라·DB (1~2일)
 
 - [x] 작업 브랜치 `feature/server-v2-persistence` 생성
-- [x] 로컬 Postgres — `docker-compose.yml` + `npm run db:up`
-- [x] `.env.example` (`DATABASE_URL`, `JWT_SECRET`)
+- [x] 로컬 Postgres — Docker Compose **또는** 네이티브(PG 18) 설치
+- [x] `.env.example` / `.env` (`DATABASE_URL`, `POSTGRES_ADMIN_URL`, `JWT_SECRET`)
+- [x] Drizzle 스키마 (`server/src/db/schema.ts`) — users, rooms, room_members, games
+- [x] `npm run db:setup` / `db:check` / `db:push` 스크립트
+- [ ] **로컬 DB 생성 완료** — `db:setup` + `db:push` (postgres 비밀번호 필요)
 - [ ] Render Postgres 생성 (프로덕션·스테이징)
-- [ ] Drizzle + `drizzle-kit` 스캐폴드
-- [ ] `server/src/db/schema.ts`, `repository.ts`
-- [ ] 마이그레이션: `users`, `rooms`, `room_members`, `games`
+- [ ] `Repository` 인터페이스 + `AppStore` 연동
 
-**진행도**: ~15% (로컬 인프라만)
+**진행도**: ~40% (스키마·도구 준비, DB 생성 대기)
 
 ### Phase B — 인증 API (2~3일)
 
@@ -285,7 +313,7 @@ room_chats (선택)
 - [ ] Repository 경유 read/write (`AppStore` 리팩터)
 - [ ] 방·게임 이벤트마다 DB upsert
 - [ ] startup hydrate
-- [ ] `removeSocket`: disconnect ≠ 탈락 (`room:leave`만 탈락)
+- [ ] `removeSocket`: disconnect 시 **탈락·퇴장 처리 제거** (v1 동작 변경)
 - [ ] token 기반 rejoin → room/game/chat 복원
 
 **진행도**: 0%
@@ -314,12 +342,12 @@ room_chats (선택)
 
 | Phase | 내용 | 상태 | % |
 |-------|------|------|---|
-| A | Postgres·Drizzle·Repository | 🔄 로컬 Docker 준비 | 15 |
+| A | Postgres·Drizzle·Repository | 🔄 스키마·스크립트 완료 | 40 |
 | B | ID/PW 인증 | ⏳ 미착수 | 0 |
 | C | 영속화·슬립 복구 | ⏳ 미착수 | 0 |
 | D | cold start UX | ⏳ 미착수 | 0 |
 | E | QA·릴리스 | ⏳ 미착수 | 0 |
-| **합계** | | **준비 중** | **~3%** |
+| **합계** | | **준비 중** | **~8%** |
 
 ---
 
@@ -344,18 +372,18 @@ room_chats (선택)
 |------|--------|------|
 | Postgres Free 30일 만료 | 데이터 소실 | Supabase/Neon 이전 또는 유료·`pg_dump` |
 | JSONB 스키마 변경 | 마이그레이션 복잡 | `schema_version` + 스크립트 |
-| disconnect vs 탈락 | 룰 혼란 | `room:leave`만 탈락; disconnect는 grace |
+| disconnect vs 탈락 | v1은 끊기면 탈락 | disconnect **유지**, 강퇴는 방장만 (R-K1) |
 | **v1 닉네임 계정** | — | **✅ 확정: 미지원** (v2.0 신규 가입만) |
 | MariaDB 기대 | Render 미지원 | PostgreSQL 확정 (§5.1) |
 | 벤더 lock-in | Supabase 이전 어려움 | 자체 Auth + Drizzle + `DATABASE_URL` only (§5.3) |
 
-### 미결정 (구현 전 확정)
+### ✅ 확정 (2026-06-19)
 
-| # | 항목 | 선택지 |
-|---|------|--------|
-| 1 | 세션 | JWT only vs DB `auth_sessions` 병행 |
-| 2 | 방 채팅 | 영속화 여부 (R-D4) |
-| 3 | disconnect grace | 5분 자동 퇴장 vs 슬립만 예외 |
+| # | 항목 | 결정 |
+|---|------|------|
+| 1 | 세션 | **JWT only** (§6.2) |
+| 2 | 채팅 | **영속화 없음**. 게임 로그만 `GameState.actionLog` → `state_json` |
+| 3 | disconnect | **자동 퇴장 없음**. 방장 **강퇴**만 예정 (R-K1) |
 
 ---
 
@@ -385,10 +413,9 @@ room_chats (선택)
 
 ## 15. 다음 액션
 
-1. **§12 미결정 3건** 답변 (JWT/채팅/grace)
-2. Docker Desktop 설치 후 `npm run db:up` 로컬 DB 기동 확인
-3. Drizzle 스캐폴드 + 첫 마이그레이션
-4. (나중) Render Postgres + `DATABASE_URL` (배포용)
+1. Docker Desktop 설치 후 `npm run db:up` 로컬 DB 기동 확인
+2. **Phase A** — Drizzle 스캐폴드 + 첫 마이그레이션
+3. (나중) Render Postgres + `DATABASE_URL` (배포용)
 
 ---
 
@@ -414,17 +441,33 @@ npm run db:ps          # healthy 확인
 
 데이터는 Docker volume `davinci_pg_data`에 유지. 초기화: `docker compose down -v` (주의: 데이터 삭제).
 
-### 17.2 대안: PostgreSQL 네이티브 설치
+### 17.2 네이티브 설치 (현재 환경 — PostgreSQL 18)
 
-Docker를 쓰기 어렵다면:
-
-1. https://www.postgresql.org/download/windows/ 에서 **PostgreSQL 16** 설치
-2. pgAdmin 또는 `psql`로 DB 생성:
-   ```sql
-   CREATE USER davinci WITH PASSWORD 'davinci';
-   CREATE DATABASE davinci_dev OWNER davinci;
+1. 설치 완료 ✅ (`C:\Program Files\PostgreSQL\18\`)
+2. `.env`에서 **한 줄만** 수정:
+   ```text
+   POSTGRES_ADMIN_URL=postgresql://postgres:설치시비밀번호@localhost:5432/postgres
    ```
-3. `.env`의 `DATABASE_URL`을 동일 형식으로 설정
+3. DB·유저 생성:
+   ```powershell
+   cd davinci-code-web
+   npm run db:setup
+   ```
+4. 테이블 생성:
+   ```powershell
+   npm run db:push
+   ```
+5. 확인:
+   ```powershell
+   npm run db:check
+   ```
+   → `OK: connected as davinci to davinci_dev` + 테이블 4개
+
+수동 SQL (스크립트 대신):
+```sql
+CREATE ROLE davinci LOGIN PASSWORD 'davinci';
+CREATE DATABASE davinci_dev OWNER davinci;
+```
 
 ### 17.3 v1 vs v2 로컬 실행
 
@@ -458,5 +501,6 @@ git merge main
 | 2026-06-19 | Supabase/Neon 이식성 (§5.3, NF-6) 반영 |
 | 2026-06-19 | v1 닉네임 호환 **미지원** 확정 |
 | 2026-06-19 | `feature/server-v2-persistence` 브랜치, Docker Postgres 로컬 셋업 |
+| 2026-06-19 | §12 확정 — JWT only, 채팅 미저장·actionLog만, 자동퇴장 없음·방장 강퇴 예정 |
 
 *마지막 갱신: 2026-06-19*

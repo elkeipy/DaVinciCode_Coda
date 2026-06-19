@@ -18,29 +18,32 @@ npm run dev
 
 ## v2 로컬 DB (PostgreSQL)
 
-서버 v2(`feature/server-v2-persistence`)부터 DB 필요. **Docker 권장** (Postgres 직접 설치 불필요).
+### Docker (선택)
 
 ```bash
-# 1. Docker Desktop 실행 후
 npm run db:up
+```
 
-# 2. 환경 변수
-Copy-Item .env.example .env   # Windows PowerShell
+### 네이티브 설치 (Windows)
 
-# 3. 앱 실행 (DB 연동 코드는 Phase A 이후)
-npm run dev
+1. `Copy-Item .env.example .env` (최초 1회)
+2. `.env`의 `POSTGRES_ADMIN_URL`에 **설치 시 postgres 비밀번호** 입력
+3. 아래 순서 실행:
+
+```powershell
+npm run db:setup    # davinci / davinci_dev 생성
+npm run db:push     # 테이블 생성
+npm run db:check    # 연결 확인
 ```
 
 | 명령 | 설명 |
 |------|------|
-| `npm run db:up` | Postgres 컨테이너 기동 |
-| `npm run db:down` | 컨테이너 중지 |
-| `npm run db:logs` | DB 로그 |
-| `npm run db:ps` | 상태 확인 |
+| `npm run db:setup` | role·database 생성 (postgres 슈퍼유저 필요) |
+| `npm run db:push` | Drizzle 스키마 → DB 반영 |
+| `npm run db:check` | `DATABASE_URL` 연결 테스트 |
+| `npm run db:up` | Docker Postgres (대안) |
 
-연결 문자열: `postgresql://davinci:davinci@localhost:5432/davinci_dev`
-
-Docker 없을 때 → repo 루트 `Todo-Server.md` §17 네이티브 설치 참고.
+연결: `postgresql://davinci:davinci@localhost:5432/davinci_dev`
 
 ## 구조
 

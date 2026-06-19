@@ -7,12 +7,10 @@
     "client"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev": "node scripts/dev.mjs",
     "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
     "test": "npm run test -w shared",
     "test:e2e": "npm run test:e2e -w client"
   },
-  "devDependencies": {
-    "concurrently": "^9.1.2"
-  }
+  "devDependencies": {}
 }

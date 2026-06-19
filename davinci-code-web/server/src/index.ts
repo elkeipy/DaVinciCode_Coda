@@ -8,16 +8,18 @@ import { AppStore } from './store.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173';
+const isDev = process.env.NODE_ENV !== 'production';
+const corsOrigin = isDev ? true : CLIENT_ORIGIN;
 
 const app = express();
-app.use(cors({ origin: CLIENT_ORIGIN }));
+app.use(cors({ origin: corsOrigin }));
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: CLIENT_ORIGIN },
+  cors: { origin: corsOrigin },
 });
 
 const store = new AppStore();
@@ -91,12 +93,17 @@ io.on('connection', (socket) => {
   socket.on('room:create', ({ title }: { title: string }) => {
     const session = store.getSessionBySocket(socket.id);
     if (!session) {
+      socket.emit('error', { code: 'NO_SESSION', message: '세션이 없습니다. 다시 로비에 입장해주세요.' });
       return;
     }
     try {
       const room = store.createRoom(session.sessionId, title);
       socket.join(`room:${room.roomId}`);
       emitLobby();
+      const state = store.getRoomState(room.roomId);
+      if (state) {
+        socket.emit('room:state', state);
+      }
       emitRoom(room.roomId);
     } catch (e) {
       socket.emit('error', { code: 'ROOM_CREATE_FAILED', message: (e as Error).message });
@@ -106,6 +113,17 @@ io.on('connection', (socket) => {
   socket.on('room:join', ({ roomId }: { roomId: string }) => {
     const session = store.getSessionBySocket(socket.id);
     if (!session) {
+      socket.emit('error', { code: 'NO_SESSION', message: '세션이 없습니다. 다시 로비에 입장해주세요.' });
+      return;
+    }
+    if (session.roomId === roomId) {
+      socket.join(`room:${roomId}`);
+      emitRoom(roomId);
+      broadcastRoomChats(roomId);
+      return;
+    }
+    if (session.roomId) {
+      socket.emit('error', { code: 'ROOM_JOIN_FAILED', message: '이미 다른 방에 있습니다.' });
       return;
     }
     try {

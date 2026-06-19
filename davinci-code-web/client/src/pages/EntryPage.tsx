@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../hooks/useSocket';
 import { useAppStore } from '../stores/sessionStore';
 
+const JOIN_TIMEOUT_MS = 8000;
+
 export default function EntryPage() {
   const [nickname, setNickname] = useState(localStorage.getItem('davinci_nickname') ?? '');
   const [loading, setLoading] = useState(false);
+  const connected = useAppStore((s) => s.connected);
   const navigate = useNavigate();
 
   const handleSubmit = (e: FormEvent) => {
@@ -16,20 +19,72 @@ export default function EntryPage() {
       return;
     }
     setLoading(true);
+    useAppStore.getState().setError(null);
     const socket = getSocket();
-    const onAssigned = () => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const cleanup = () => {
       socket.off('session:assigned', onAssigned);
+      socket.off('connect_error', onConnectError);
+      socket.off('error', onServerError);
+      socket.off('connect', onConnect);
+      clearTimeout(timeoutId);
+    };
+
+    const fail = (message: string) => {
+      cleanup();
+      setLoading(false);
+      useAppStore.getState().setError(message);
+    };
+
+    const onAssigned = () => {
+      cleanup();
       setLoading(false);
       navigate('/lobby');
     };
+
+    const onConnectError = () => {
+      fail('서버에 연결할 수 없습니다. `davinci-code-web`에서 `npm run dev`로 서버·클라이언트를 함께 실행하세요.');
+    };
+
+    const onServerError = ({ message }: { message: string }) => {
+      fail(message);
+    };
+
+    const submitJoin = () => {
+      socket.emit('lobby:join', { nickname: trimmed });
+    };
+
+    const onConnect = () => {
+      submitJoin();
+    };
+
+    timeoutId = setTimeout(() => {
+      fail('서버 응답이 없습니다. 서버(포트 3001)가 실행 중인지 확인하세요.');
+    }, JOIN_TIMEOUT_MS);
+
     socket.on('session:assigned', onAssigned);
-    socket.emit('lobby:join', { nickname: trimmed });
+    socket.on('connect_error', onConnectError);
+    socket.on('error', onServerError);
+
+    if (socket.connected) {
+      submitJoin();
+    } else {
+      socket.once('connect', onConnect);
+      socket.connect();
+    }
   };
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6">
       <h1 className="text-3xl font-bold text-primary mb-2">Da Vinci Code</h1>
       <p className="text-slate-400 mb-8 text-center">다빈치코드 웹 보드게임</p>
+      <p
+        className={`mb-4 text-sm ${connected ? 'text-emerald-400' : 'text-amber-400'}`}
+        role="status"
+      >
+        {connected ? '서버 연결됨' : '서버 연결 중… (연결 안 되면 npm run dev 확인)'}
+      </p>
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
         <label className="block">
           <span className="text-sm text-slate-300 mb-1 block">닉네임</span>
@@ -45,7 +100,7 @@ export default function EntryPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-primary text-surface font-semibold py-3 min-h-[44px] active:scale-[0.98]"
+          className="w-full rounded-lg bg-primary text-surface font-semibold py-3 min-h-[44px] active:scale-[0.98] disabled:opacity-60"
         >
           {loading ? '입장 중...' : '로비 입장'}
         </button>

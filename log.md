@@ -20,4 +20,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-18 18:00 | save | Phase 0~4 구현 완료 — davinci-code-web monorepo, 진행률 100% | [[PROGRESS]], [[FirstPlan]], [[projects/project-davinci-code]]
 2026-06-18 19:00 | save | 구현 v1 wiki·git 저장 — implementation-v1, dev-tasks, conversations | [[sources/implementation-v1]], [[dev-tasks/implementation-complete]], [[PROGRESS]]
 2026-06-18 20:00 | save | 로컬 dev 트러블슈팅 — 고정 포트·좀비 node 교훈 wiki 기록 | [[errors/2026-06-18-dev-local-run]], [[sources/implementation-v1]]
+2026-06-19 10:00 | save | Socket·로비 버그 수정 — dev.mjs, useSocket, 방 생성 플로우 | [[errors/2026-06-19-socket-lobby-bugs]], [[sources/implementation-v1]]
 

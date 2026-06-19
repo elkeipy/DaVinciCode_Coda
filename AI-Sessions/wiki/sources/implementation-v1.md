@@ -28,7 +28,9 @@ sources: ["[[FirstPlan]]", "[[PROGRESS]]"]
 cd davinci-code-web && npm install && npm run dev
 ```
 
-**고정 포트**: server `3001`, client `5173`. 충돌 시 → [[errors/2026-06-18-dev-local-run]].
+**고정 포트**: server `3001`, client `5173`. `npm run dev`는 `scripts/dev.mjs`로 서버→클라 순 기동.
+
+트러블슈팅 → [[errors/2026-06-18-dev-local-run]], [[errors/2026-06-19-socket-lobby-bugs]].
 
 ## 핵심 Socket 이벤트
 

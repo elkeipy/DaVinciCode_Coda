@@ -22,10 +22,16 @@ export default function GameRoomPage() {
   const [showGuess, setShowGuess] = useState(false);
 
   useEffect(() => {
-    if (roomId && !room) {
-      getSocket().emit('room:join', { roomId });
+    if (!roomId) {
+      return;
     }
-  }, [roomId, room]);
+    const socket = getSocket();
+    const currentRoom = useAppStore.getState().room;
+    if (currentRoom?.room.roomId === roomId) {
+      return;
+    }
+    socket.emit('room:join', { roomId });
+  }, [roomId]);
 
   if (!room || room.room.roomId !== roomId) {
     return <div className="p-8 text-center text-slate-400">방 로딩 중...</div>;

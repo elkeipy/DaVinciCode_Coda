@@ -14,6 +14,7 @@
 - [[README]]
 - [[FirstPlan]] — 다빈치코드 웹 개발 계획서 (v0.6, **턴 드로우 룰**)
 - [[DeployPlan]] — 배포 계획 (**완료**, tag `v1.0.0`)
+- [[Todo-Server]] — 서버 v2 계획 (영속화·ID/PW·슬립 복구)
 - [[CHANGELOG]] — 버전 변경 이력
 - [[PROGRESS]] — 구현 진행률 **100%**
 - [[TEMPLATE_MANIFEST]]

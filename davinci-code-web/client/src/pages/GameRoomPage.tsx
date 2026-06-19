@@ -50,7 +50,8 @@ export default function GameRoomPage() {
   const isSpectator = myBoard?.spectator ?? false;
   const needsJoker = isJokerSetup && myBoard && !myBoard.jokerReady && myBoard.tiles.some((t) => t.value === 'joker');
   const pendingPenalty = gameState?.pendingPenalty === sessionId;
-  const canPass = Boolean(gameState?.passUnlocked[sessionId ?? '']);
+  const canContinueTurn = Boolean(isMyTurn && gameState?.canContinueTurn);
+  const mustGuess = Boolean(isMyTurn && isPlaying && !pendingPenalty && !canContinueTurn);
   const drawnTileId = gameState?.drawnTileId;
 
   const handleLeave = () => {
@@ -97,8 +98,14 @@ export default function GameRoomPage() {
                 currentNickname={currentTurnId ? boards[currentTurnId]?.nickname ?? null : null}
                 isMyTurn={isMyTurn}
               />
-              {drawnTileId && isMyTurn && (
+              {drawnTileId && isMyTurn && !canContinueTurn && (
                 <p className="text-sm text-amber-400 px-2">이번 턴 드로우 타일이 보드에 추가되었습니다.</p>
+              )}
+              {mustGuess && (
+                <p className="text-sm text-slate-300 px-2">추리가 필요합니다. 상대 타일을 선택하세요.</p>
+              )}
+              {canContinueTurn && (
+                <p className="text-sm text-emerald-400 px-2">추리 성공! 추가 추리 또는 패스하세요.</p>
               )}
               {pendingPenalty && (
                 <p className="text-sm text-red-400 px-2">패널티: 공개할 본인 타일을 선택하세요.</p>
@@ -161,7 +168,7 @@ export default function GameRoomPage() {
             >
               추리
             </button>
-            {canPass && (
+            {canContinueTurn && (
               <button
                 type="button"
                 onClick={() => getSocket().emit('game:pass')}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dealTiles } from './deck.js';
-import { beginTurn, createInitialPassUnlocked, evaluateGuess } from './gameLogic.js';
+import { applyPass, beginTurn, evaluateGuess } from './gameLogic.js';
 import type { GameState, PlayerBoard } from '../types.js';
 
 function mockBoard(sessionId: string, nickname: string): PlayerBoard {
@@ -32,7 +32,7 @@ function baseGame(): GameState {
     actionLog: [],
     drawPile,
     drawnTileId: null,
-    passUnlocked: createInitialPassUnlocked([a, b]),
+    canContinueTurn: false,
     pendingPenalty: null,
   };
 }
@@ -46,14 +46,17 @@ describe('beginTurn', () => {
     expect(updated.drawPile.length).toBe(pileBefore - 1);
     expect(updated.boards['player-a'].tiles.length).toBe(tilesBefore + 1);
     expect(updated.drawnTileId).not.toBeNull();
+    expect(updated.canContinueTurn).toBe(false);
   });
 });
 
 describe('evaluateGuess', () => {
-  it('unlocks pass on success', () => {
+  it('allows continue turn on success without advancing', () => {
     const game = beginTurn(baseGame());
+    const turnBefore = game.currentTurnIndex;
     const { game: updated } = evaluateGuess(game, 'player-a', 'player-b', 0, { type: 'number', value: 1 });
-    expect(updated.passUnlocked['player-a']).toBe(true);
+    expect(updated.canContinueTurn).toBe(true);
+    expect(updated.currentTurnIndex).toBe(turnBefore);
   });
 
   it('reveals drawn tile on failure when pile was drawn', () => {
@@ -62,5 +65,16 @@ describe('evaluateGuess', () => {
     const { game: updated } = evaluateGuess(started, 'player-a', 'player-b', 0, { type: 'number', value: 9 });
     const tile = updated.boards['player-a'].tiles.find((t) => t.id === drawnId);
     expect(tile?.revealed).toBe(true);
+    expect(updated.currentTurnIndex).not.toBe(0);
+  });
+});
+
+describe('applyPass', () => {
+  it('ends turn only after success', () => {
+    const game = beginTurn(baseGame());
+    const { game: afterSuccess } = evaluateGuess(game, 'player-a', 'player-b', 0, { type: 'number', value: 1 });
+    const afterPass = applyPass(afterSuccess, 'player-a');
+    expect(afterPass.canContinueTurn).toBe(false);
+    expect(afterPass.currentTurnIndex).toBe(1);
   });
 });

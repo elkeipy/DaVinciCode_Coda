@@ -16,7 +16,6 @@ import {
   allPlayersJokerReady,
   applyPass,
   applyPenaltyTile,
-  createInitialPassUnlocked,
   dealTiles,
   enterPlayingPhase,
   evaluateGuess,
@@ -280,7 +279,7 @@ export class AppStore {
       actionLog: [],
       drawPile,
       drawnTileId: null,
-      passUnlocked: createInitialPassUnlocked(room.playerIds),
+      canContinueTurn: false,
       pendingPenalty: null,
     };
     if (!hasJokerSetup) {

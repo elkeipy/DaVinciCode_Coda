@@ -23,4 +23,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-19 10:00 | save | Socket·로비 버그 수정 — dev.mjs, useSocket, 방 생성 플로우 | [[errors/2026-06-19-socket-lobby-bugs]], [[sources/implementation-v1]]
 2026-06-19 12:00 | save | FirstPlan v0.6 턴 드로우·패스 룰 — shared/gameLogic·wiki 반영 | [[FirstPlan]], [[concepts/game-rules]]
 2026-06-19 14:00 | save | v0.6 구현·shared 빌드 fix git 저장 | [[FirstPlan]], [[concepts/game-rules]], [[sources/implementation-v1]]
+2026-06-19 16:00 | save | FirstPlan 룰 10 — 추리 성공 후 재추리/패스 선택, canContinueTurn | [[FirstPlan]], [[concepts/game-rules]], [[sources/implementation-v1]]
 

@@ -40,19 +40,19 @@ sources: ["[[FirstPlan]]", "[[decisions/2026-06-18-game-policy]]"]
 - 더미에 타일이 남아 있으면 **1장 드로우** → 본인 보드에 오름차순 삽입
 - 더미가 비면 드로우 생략
 
-### 추리 (매 턴 필수 — 패스 권한 없을 때)
+### 추리 (매 턴 최소 1회)
 
 1. 상대 **숨김 타일 1장** 지목
 2. "숫자 **X**" 또는 "**조커**" 선언
-3. **정답** → 상대 타일 공개, **패스 권한** 획득
+3. **정답** → 상대 타일 공개 → **추가 추리 또는 패스** (같은 턴)
 4. **오답** → 패널티 후 턴 종료
    - 이번 턴 **드로우 타일**이 있으면 → 그 타일 공개
    - 드로우 없었으면 → **본인 미공개 타일 1장 직접 선택** (`game:penalty`)
 
 ### 패스
 
-- **추리 성공 이력이 있는 플레이어만** 사용
-- 드로우·추리 없이 다음 플레이어로 턴 이동
+- **해당 턴 추리 성공 직후**에만 가능 (`canContinueTurn`)
+- 턴 종료 후 다음 플레이어로 이동
 
 ## 승패·관전
 
@@ -68,10 +68,8 @@ sources: ["[[FirstPlan]]", "[[decisions/2026-06-18-game-policy]]"]
 ## 구현 메모 (`shared/rules`)
 
 ```typescript
-// GameState: drawPile, drawnTileId, passUnlocked, pendingPenalty
-// 턴 시작: beginTurn()
-// 추리 실패: drawnTileId 공개 또는 pendingPenalty → game:penalty
-// 패스: applyPass() — passUnlocked[playerId] 필요
+// GameState: drawPile, drawnTileId, canContinueTurn, pendingPenalty
+// 추리 성공 → canContinueTurn=true (같은 턴 재추리/패스)
 ```
 
 ## 관련 문서

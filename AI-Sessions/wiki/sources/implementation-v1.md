@@ -34,9 +34,9 @@ cd davinci-code-web && npm install && npm run dev
 
 트러블슈팅 → [[errors/2026-06-18-dev-local-run]], [[errors/2026-06-19-socket-lobby-bugs]].
 
-## 게임 룰 (v0.6)
+## 게임 룰 (v0.6 + 룰 10)
 
-- 턴 시작 드로우 (`drawPile`), 추리 필수, 성공 후 패스, `game:penalty` — [[concepts/game-rules]], [[FirstPlan]]
+- 턴 시작 드로우 (`drawPile`), 추리 필수, 성공 후 **재추리 또는 패스** (`canContinueTurn`), `game:penalty` — [[concepts/game-rules]], [[FirstPlan]]
 
 ## 핵심 Socket 이벤트
 
@@ -47,7 +47,7 @@ cd davinci-code-web && npm install && npm run dev
 
 ## 테스트
 
-- `npm test` — shared vitest (4 tests)
+- `npm test` — shared vitest (8 tests)
 - `npm run test:e2e` — Playwright (2 tests)
 
 ## 관련 문서

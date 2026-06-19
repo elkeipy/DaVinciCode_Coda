@@ -52,7 +52,7 @@ export function advanceTurn(game: GameState): GameState {
       break;
     }
   }
-  return { ...game, currentTurnIndex: nextIndex, drawnTileId: null, pendingPenalty: null };
+  return { ...game, currentTurnIndex: nextIndex, drawnTileId: null, pendingPenalty: null, canContinueTurn: false };
 }
 
 export function beginTurn(game: GameState): GameState {
@@ -65,7 +65,7 @@ export function beginTurn(game: GameState): GameState {
     return game;
   }
   if (game.drawPile.length === 0) {
-    return { ...game, drawnTileId: null };
+    return { ...game, drawnTileId: null, canContinueTurn: false };
   }
   const { tile, remaining } = drawFromPile(game.drawPile);
   const newTiles = sortTiles([...board.tiles, { ...tile, position: board.tiles.length }]);
@@ -73,6 +73,7 @@ export function beginTurn(game: GameState): GameState {
     ...game,
     drawPile: remaining,
     drawnTileId: tile.id,
+    canContinueTurn: false,
     boards: { ...game.boards, [currentId]: { ...board, tiles: newTiles } },
   };
 }
@@ -127,11 +128,17 @@ export function evaluateGuess(
     });
     logText = `${guesserBoard.nickname} → ${targetBoard.nickname} [${tileIndex + 1}] = ${claimLabel} ✓`;
     let updated = appendAction({ ...game, boards }, logText);
-    updated = {
-      ...updated,
-      passUnlocked: { ...updated.passUnlocked, [guesserId]: true },
-    };
-    updated = finalizeAfterTurn(updated);
+    updated = { ...updated, canContinueTurn: true };
+    const winner = getWinner(updated);
+    if (winner) {
+      updated = {
+        ...updated,
+        phase: 'finished',
+        winnerId: winner.winnerId,
+        winnerNickname: winner.winnerNickname,
+        canContinueTurn: false,
+      };
+    }
     return { game: updated, log: logText };
   }
   logText = `${guesserBoard.nickname} → ${targetBoard.nickname} [${tileIndex + 1}] = ${claimLabel} ✗`;
@@ -179,15 +186,19 @@ export function applyPenaltyTile(game: GameState, sessionId: string, tileId: str
 }
 
 export function applyPass(game: GameState, sessionId: string): GameState {
-  if (!game.passUnlocked[sessionId]) {
-    throw new Error('Pass is only available after a successful guess');
+  const currentId = game.turnOrder[game.currentTurnIndex];
+  if (currentId !== sessionId) {
+    throw new Error('Not your turn');
+  }
+  if (!game.canContinueTurn) {
+    throw new Error('Pass is only available after a successful guess this turn');
   }
   const board = game.boards[sessionId];
   if (!board) {
     throw new Error('Invalid player');
   }
   const logText = `${board.nickname} 패스`;
-  let updated = appendAction(game, logText);
+  let updated = appendAction({ ...game, canContinueTurn: false }, logText);
   updated = finalizeAfterTurn(updated);
   return updated;
 }
@@ -227,10 +238,6 @@ export function buildPlayerView(game: GameState, viewerId: string): Record<strin
   return result;
 }
 
-export function createInitialPassUnlocked(playerIds: string[]): Record<string, boolean> {
-  return Object.fromEntries(playerIds.map((id) => [id, false]));
-}
-
 export function enterPlayingPhase(game: GameState): GameState {
-  return beginTurn({ ...game, phase: 'playing' });
+  return beginTurn({ ...game, phase: 'playing', canContinueTurn: false });
 }

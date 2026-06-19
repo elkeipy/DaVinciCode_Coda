@@ -11,6 +11,8 @@
     "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
     "build:pages": "npm run build -w shared && npm run build:pages -w client",
     "test": "npm run test -w shared",
+    "smoke:remote": "node scripts/smoke-remote.mjs",
+    "smoke:pages": "node scripts/smoke-pages.mjs",
     "test:e2e": "npm run test:e2e -w client"
   },
   "devDependencies": {}

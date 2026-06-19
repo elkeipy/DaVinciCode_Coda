@@ -5,11 +5,12 @@ import { Server } from 'socket.io';
 import type { NumberValue } from '@davinci/shared';
 import { buildPlayerView } from '@davinci/shared';
 import { AppStore } from './store.js';
+import { parseClientOrigins, resolveCorsOrigin } from './corsOrigins.js';
 
 const PORT = Number(process.env.PORT ?? 3001);
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173';
+const clientOrigins = parseClientOrigins(process.env.CLIENT_ORIGIN ?? 'http://localhost:5173');
 const isDev = process.env.NODE_ENV !== 'production';
-const corsOrigin = isDev ? true : CLIENT_ORIGIN;
+const corsOrigin = resolveCorsOrigin(isDev, clientOrigins);
 
 const app = express();
 app.use(cors({ origin: corsOrigin }));

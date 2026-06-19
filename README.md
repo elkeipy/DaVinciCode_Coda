@@ -26,7 +26,8 @@ npm run dev
 ```
 GitHub repo:    https://github.com/elkeipy/DaVinciCode_Coda
 Pages (예정):   https://elkeipy.github.io/DaVinciCode_Coda/
-CLIENT_ORIGIN:  https://elkeipy.github.io
+CLIENT_ORIGIN:  https://elkeipy.github.io,http://localhost:5173
+Pages URL:      https://elkeipy.github.io/DaVinciCode_Coda/
 Render 서버:    https://davincicode-coda.onrender.com
 VITE_SOCKET_URL https://davincicode-coda.onrender.com
 ```

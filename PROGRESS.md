@@ -36,7 +36,7 @@
 | 1 | Render 서버 배포 | ✅ `davincicode-coda.onrender.com` |
 | 2 | 클라 Pages 빌드 설정 | ✅ `build:pages` |
 | 3 | GitHub Actions CI | ✅ workflow 추가 |
-| 4 | 프로덕션 연동·플레이 테스트 | ⏳ |
+| 4 | 프로덕션 연동·플레이 테스트 | 🔄 CORS·UX 적용, Render env 대기 |
 
 → [[DeployPlan]]
 

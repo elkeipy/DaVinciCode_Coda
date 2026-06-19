@@ -3,7 +3,7 @@
 > **결정 사항**: 클라이언트 **GitHub Pages** · 서버 **Render**  
 > **대상**: `davinci-code-web/` monorepo (React + Vite / Express + Socket.io)  
 > **작성일**: 2026-06-19  
-> **상태**: Phase 0~3 구현 완료 · Phase 4 (프로덕션 연동) 대기
+> **상태**: Phase 4 진행 중 — Render `CLIENT_ORIGIN` 설정 후 플레이 테스트
 
 ---
 
@@ -59,7 +59,7 @@ GitHub Pages는 **정적 파일만** 호스팅한다. Express + Socket.io 서버
 | 3 | 빌드 후 `404.html` = `index.html` 복사 | GitHub Pages SPA fallback | P0 | ✅ |
 | 4 | GitHub Actions 워크플로 생성 | Pages 자동 배포 | P0 | ✅ |
 | 5 | Render Web Service 생성 + env 설정 | 서버 호스팅 | P0 | ✅ |
-| 6 | `CLIENT_ORIGIN` = Pages URL | 프로덕션 CORS | P0 | Phase 4 |
+| 6 | `CLIENT_ORIGIN` = Pages URL | 프로덕션 CORS | P0 | Render 설정 필요 |
 | 7 | 클라 빌드 시 `VITE_SOCKET_URL` = Render URL | 소켓 연결 대상 | P0 | ✅ |
 | 8 | Render `render.yaml` (선택) | IaC·재현성 | P1 | |
 | 9 | 슬립 대응 UX (연결 중·재시도 메시지) | Render 무료 티어 15분 슬립 | P1 | |
@@ -286,13 +286,26 @@ const corsOrigin = isDev ? true : CLIENT_ORIGIN;
 
 - [x] Actions 워크플로 추가 (`.github/workflows/deploy-pages.yml`)
 - [x] `VITE_SOCKET_URL` — workflow 기본값 + repo Variable 권장
-- [ ] 첫 배포 성공 확인 (push 후 Actions 탭에서 확인)
+- [x] 첫 배포 성공 — https://elkeipy.github.io/DaVinciCode_Coda/
 
 ### Phase 4 — 프로덕션 연동 (0.5일)
 
-- [ ] `CLIENT_ORIGIN` 최종 설정
-- [ ] 2인 이상 실제 플레이 테스트 (로비 → 방 → 게임 → 재시작)
-- [ ] 슬립 후 재접속 시나리오 테스트
+- [ ] Render `CLIENT_ORIGIN` 최종 설정 (아래 참고)
+- [x] CORS origin 정규화·다중 origin 지원 (`server/src/corsOrigins.ts`)
+- [x] 프로덕션 연결 UX (슬립 안내·90s 타임아웃)
+- [ ] 2인 이상 실제 플레이 테스트 (로비 → 방 → 게임 → 재시작) — **사용자 확인**
+- [ ] 슬립 후 재접속 시나리오 테스트 — **사용자 확인**
+
+#### Render `CLIENT_ORIGIN` 설정 (필수)
+
+Render 대시보드 → **Environment** → `CLIENT_ORIGIN` 값:
+
+```text
+https://elkeipy.github.io,http://localhost:5173
+```
+
+> trailing slash 없이. 로컬 개발도 유지하려면 `localhost:5173` 포함.  
+> 저장 후 **Manual Deploy** 또는 자동 재배포 대기.
 
 ### Phase 5 — 문서·인수인계 (0.25일)
 

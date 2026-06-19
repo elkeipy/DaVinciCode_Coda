@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { getSocket } from '../hooks/useSocket';
 import { useAppStore } from '../stores/sessionStore';
 
-const JOIN_TIMEOUT_MS = 8000;
+const JOIN_TIMEOUT_MS = import.meta.env.PROD ? 90_000 : 8_000;
+const isLocalDev = import.meta.env.DEV;
 
 export default function EntryPage() {
   const [nickname, setNickname] = useState(localStorage.getItem('davinci_nickname') ?? '');
@@ -44,7 +45,11 @@ export default function EntryPage() {
     };
 
     const onConnectError = () => {
-      fail('서버에 연결할 수 없습니다. `davinci-code-web`에서 `npm run dev`로 서버·클라이언트를 함께 실행하세요.');
+      fail(
+        isLocalDev
+          ? '서버에 연결할 수 없습니다. `davinci-code-web`에서 `npm run dev`로 서버·클라이언트를 함께 실행하세요.'
+          : '서버에 연결할 수 없습니다. 무료 서버가 슬립 중이면 1분 정도 후 다시 시도하세요.',
+      );
     };
 
     const onServerError = ({ message }: { message: string }) => {
@@ -60,7 +65,11 @@ export default function EntryPage() {
     };
 
     timeoutId = setTimeout(() => {
-      fail('서버 응답이 없습니다. 서버(포트 3001)가 실행 중인지 확인하세요.');
+      fail(
+        isLocalDev
+          ? '서버 응답이 없습니다. 서버(포트 3001)가 실행 중인지 확인하세요.'
+          : '서버 응답이 없습니다. 슬립 해제 중일 수 있으니 잠시 후 다시 시도하세요.',
+      );
     }, JOIN_TIMEOUT_MS);
 
     socket.on('session:assigned', onAssigned);
@@ -83,7 +92,11 @@ export default function EntryPage() {
         className={`mb-4 text-sm ${connected ? 'text-emerald-400' : 'text-amber-400'}`}
         role="status"
       >
-        {connected ? '서버 연결됨' : '서버 연결 중… (연결 안 되면 npm run dev 확인)'}
+        {connected
+          ? '서버 연결됨'
+          : isLocalDev
+            ? '서버 연결 중… (연결 안 되면 npm run dev 확인)'
+            : '서버 연결 중… (최대 1분 소요될 수 있음)'}
       </p>
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
         <label className="block">

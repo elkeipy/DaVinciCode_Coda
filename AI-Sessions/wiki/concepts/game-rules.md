@@ -2,7 +2,7 @@
 title: 다빈치코드 게임 룰
 category: concepts
 created: 2026-06-18
-updated: 2026-06-18
+updated: 2026-06-19
 status: active
 sources: ["[[FirstPlan]]", "[[decisions/2026-06-18-game-policy]]"]
 ---
@@ -13,7 +13,7 @@ sources: ["[[FirstPlan]]", "[[decisions/2026-06-18-game-policy]]"]
 
 흑백 숫자 타일 + 조커. 오름차순 배치 후 상대 숨김 타일의 **숫자 또는 조커**를 추리한다.
 
-> **본 문서가 구현 기준(Source of Truth)**.
+> **본 문서가 구현 기준(Source of Truth)**. FirstPlan v0.6 반영.
 
 ## 타일 구성
 
@@ -31,25 +31,33 @@ sources: ["[[FirstPlan]]", "[[decisions/2026-06-18-game-policy]]"]
 3. 숫자 타일은 **오름차순 정렬** (동일 숫자: 검은색이 흰색 왼쪽).
 4. **조커** 보유 시: 플레이어가 **대표 숫자(0~11)를 선택**하고, 자신의 타일 배치를 참고해 **위치에 놓는다** (`game:placeJoker`).
 5. 모든 플레이어 배치 완료 후 본게임 시작. **초기 자동 공개 없음**.
+6. 배분 후 **남은 타일은 중앙 더미** (`drawPile`).
 
 ## 턴
 
-### 추리 (Challenge)
+### 턴 시작
+
+- 더미에 타일이 남아 있으면 **1장 드로우** → 본인 보드에 오름차순 삽입
+- 더미가 비면 드로우 생략
+
+### 추리 (매 턴 필수 — 패스 권한 없을 때)
 
 1. 상대 **숨김 타일 1장** 지목
 2. "숫자 **X**" 또는 "**조커**" 선언
-3. **정답** → 상대 타일 공개
-4. **오답** → **서버가** 자신의 숨김 타일 1장 **자동 공개** (플레이어 선택 없음)
+3. **정답** → 상대 타일 공개, **패스 권한** 획득
+4. **오답** → 패널티 후 턴 종료
+   - 이번 턴 **드로우 타일**이 있으면 → 그 타일 공개
+   - 드로우 없었으면 → **본인 미공개 타일 1장 직접 선택** (`game:penalty`)
 
 ### 패스
 
-- 다음 플레이어로 턴 이동
+- **추리 성공 이력이 있는 플레이어만** 사용
+- 드로우·추리 없이 다음 플레이어로 턴 이동
 
 ## 승패·관전
 
 - 모든 타일 공개 → **탈락** → **관전 모드**
 - 관전 중: 보드·채팅 가능, 턴·추리 불가
-- 관전 중 선택: **게임 종료까지 대기** 또는 **방 퇴장**
 - **마지막 1인** 승리
 
 ## 게임 종료 후
@@ -60,17 +68,10 @@ sources: ["[[FirstPlan]]", "[[decisions/2026-06-18-game-policy]]"]
 ## 구현 메모 (`shared/rules`)
 
 ```typescript
-const MAX_PLAYERS = 4 as const;
-
-type GuessClaim =
-  | { type: 'number'; value: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 }
-  | { type: 'joker' };
-
-function getDealCount(playerCount: number): number {
-  return playerCount === 4 ? 3 : 4;
-}
-
-// 추리 실패: pickRandomHiddenTile(board) — 서버 전용
+// GameState: drawPile, drawnTileId, passUnlocked, pendingPenalty
+// 턴 시작: beginTurn()
+// 추리 실패: drawnTileId 공개 또는 pendingPenalty → game:penalty
+// 패스: applyPass() — passUnlocked[playerId] 필요
 ```
 
 ## 관련 문서

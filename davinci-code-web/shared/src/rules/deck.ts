@@ -56,14 +56,25 @@ export function getDealCount(playerCount: number): number {
   return playerCount === 4 ? 3 : 4;
 }
 
-export function dealTiles(playerCount: number): Tile[][] {
+export function dealTiles(playerCount: number): { hands: Tile[][]; drawPile: Tile[] } {
   const deck = shuffleDeck(createFullDeck());
   const count = getDealCount(playerCount);
   const hands: Tile[][] = Array.from({ length: playerCount }, () => []);
-  for (let i = 0; i < count * playerCount; i += 1) {
+  const dealt = count * playerCount;
+  for (let i = 0; i < dealt; i += 1) {
     hands[i % playerCount].push(deck[i]);
   }
-  return hands;
+  return { hands, drawPile: deck.slice(dealt) };
+}
+
+export function drawFromPile(pile: Tile[]): { tile: Tile; remaining: Tile[] } {
+  if (pile.length === 0) {
+    throw new Error('Draw pile is empty');
+  }
+  const index = Math.floor(Math.random() * pile.length);
+  const tile = pile[index];
+  const remaining = [...pile.slice(0, index), ...pile.slice(index + 1)];
+  return { tile, remaining };
 }
 
 export function tileMatchesClaim(tile: Tile, claim: { type: 'number'; value: NumberValue } | { type: 'joker' }): boolean {

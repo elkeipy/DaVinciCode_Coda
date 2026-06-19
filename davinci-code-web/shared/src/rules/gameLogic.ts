@@ -1,6 +1,6 @@
 import type { GameAction, GameState, GuessClaim, NumberValue, PlayerBoard, Tile } from '../types.js';
-import { tileMatchesClaim } from './deck.js';
-import { allJokersPlaced } from './sort.js';
+import { drawFromPile, tileMatchesClaim } from './deck.js';
+import { allJokersPlaced, sortTiles } from './sort.js';
 
 export function pickRandomHiddenTile(tiles: Tile[]): Tile | null {
   const hidden = tiles.filter((t) => !t.revealed);
@@ -52,7 +52,52 @@ export function advanceTurn(game: GameState): GameState {
       break;
     }
   }
-  return { ...game, currentTurnIndex: nextIndex };
+  return { ...game, currentTurnIndex: nextIndex, drawnTileId: null, pendingPenalty: null };
+}
+
+export function beginTurn(game: GameState): GameState {
+  if (game.phase !== 'playing' || game.pendingPenalty) {
+    return game;
+  }
+  const currentId = game.turnOrder[game.currentTurnIndex];
+  const board = game.boards[currentId];
+  if (!board || board.eliminated) {
+    return game;
+  }
+  if (game.drawPile.length === 0) {
+    return { ...game, drawnTileId: null };
+  }
+  const { tile, remaining } = drawFromPile(game.drawPile);
+  const newTiles = sortTiles([...board.tiles, { ...tile, position: board.tiles.length }]);
+  return {
+    ...game,
+    drawPile: remaining,
+    drawnTileId: tile.id,
+    boards: { ...game.boards, [currentId]: { ...board, tiles: newTiles } },
+  };
+}
+
+function appendAction(game: GameState, text: string): GameState {
+  const action: GameAction = {
+    id: `action-${Date.now()}`,
+    timestamp: Date.now(),
+    text,
+  };
+  return { ...game, actionLog: [...game.actionLog, action] };
+}
+
+function finalizeAfterTurn(game: GameState): GameState {
+  let updated = beginTurn(advanceTurn(game));
+  const winner = getWinner(updated);
+  if (winner) {
+    updated = {
+      ...updated,
+      phase: 'finished',
+      winnerId: winner.winnerId,
+      winnerNickname: winner.winnerNickname,
+    };
+  }
+  return updated;
 }
 
 export function evaluateGuess(
@@ -81,37 +126,70 @@ export function evaluateGuess(
       tiles: revealTile(targetBoard.tiles, targetTile.id),
     });
     logText = `${guesserBoard.nickname} → ${targetBoard.nickname} [${tileIndex + 1}] = ${claimLabel} ✓`;
-  } else {
-    const penalty = pickRandomHiddenTile(guesserBoard.tiles);
-    if (penalty) {
-      boards[guesserId] = checkElimination({
-        ...guesserBoard,
-        tiles: revealTile(guesserBoard.tiles, penalty.id),
-      });
-    }
-    logText = `${guesserBoard.nickname} → ${targetBoard.nickname} [${tileIndex + 1}] = ${claimLabel} ✗`;
-  }
-  const action: GameAction = {
-    id: `action-${Date.now()}`,
-    timestamp: Date.now(),
-    text: logText,
-  };
-  let updated: GameState = {
-    ...game,
-    boards,
-    actionLog: [...game.actionLog, action],
-  };
-  updated = advanceTurn(updated);
-  const winner = getWinner(updated);
-  if (winner) {
+    let updated = appendAction({ ...game, boards }, logText);
     updated = {
       ...updated,
-      phase: 'finished',
-      winnerId: winner.winnerId,
-      winnerNickname: winner.winnerNickname,
+      passUnlocked: { ...updated.passUnlocked, [guesserId]: true },
     };
+    updated = finalizeAfterTurn(updated);
+    return { game: updated, log: logText };
   }
+  logText = `${guesserBoard.nickname} → ${targetBoard.nickname} [${tileIndex + 1}] = ${claimLabel} ✗`;
+  let updated = appendAction({ ...game, boards }, logText);
+  if (updated.drawnTileId) {
+    const penaltyId = updated.drawnTileId;
+    boards = {
+      ...boards,
+      [guesserId]: checkElimination({
+        ...guesserBoard,
+        tiles: revealTile(guesserBoard.tiles, penaltyId),
+      }),
+    };
+    updated = { ...updated, boards };
+    updated = finalizeAfterTurn(updated);
+    return { game: updated, log: logText };
+  }
+  updated = { ...updated, pendingPenalty: guesserId };
   return { game: updated, log: logText };
+}
+
+export function applyPenaltyTile(game: GameState, sessionId: string, tileId: string): GameState {
+  if (game.pendingPenalty !== sessionId) {
+    throw new Error('No penalty pending for this player');
+  }
+  const board = game.boards[sessionId];
+  if (!board) {
+    throw new Error('Invalid player');
+  }
+  const tile = board.tiles.find((t) => t.id === tileId);
+  if (!tile || tile.revealed) {
+    throw new Error('Invalid penalty tile');
+  }
+  const boards = {
+    ...game.boards,
+    [sessionId]: checkElimination({
+      ...board,
+      tiles: revealTile(board.tiles, tileId),
+    }),
+  };
+  const logText = `${board.nickname} 패널티 — 타일 공개`;
+  let updated = appendAction({ ...game, boards, pendingPenalty: null }, logText);
+  updated = finalizeAfterTurn(updated);
+  return updated;
+}
+
+export function applyPass(game: GameState, sessionId: string): GameState {
+  if (!game.passUnlocked[sessionId]) {
+    throw new Error('Pass is only available after a successful guess');
+  }
+  const board = game.boards[sessionId];
+  if (!board) {
+    throw new Error('Invalid player');
+  }
+  const logText = `${board.nickname} 패스`;
+  let updated = appendAction(game, logText);
+  updated = finalizeAfterTurn(updated);
+  return updated;
 }
 
 export function allPlayersJokerReady(boards: Record<string, PlayerBoard>): boolean {
@@ -124,20 +202,6 @@ export function markJokerReady(board: PlayerBoard): PlayerBoard {
     return { ...board, jokerReady: true };
   }
   return { ...board, jokerReady: allJokersPlaced(board.tiles) };
-}
-
-export function filterBoardForViewer(board: PlayerBoard, viewerId: string): PlayerBoard {
-  if (board.sessionId === viewerId) {
-    return board;
-  }
-  return {
-    ...board,
-    tiles: board.tiles.map((t) =>
-      t.revealed
-        ? t
-        : { ...t, value: 'joker' as const, jokerAssignedValue: undefined, color: t.color },
-    ),
-  };
 }
 
 export function buildPlayerView(game: GameState, viewerId: string): Record<string, PlayerBoard> {
@@ -161,4 +225,12 @@ export function buildPlayerView(game: GameState, viewerId: string): Record<strin
     }
   }
   return result;
+}
+
+export function createInitialPassUnlocked(playerIds: string[]): Record<string, boolean> {
+  return Object.fromEntries(playerIds.map((id) => [id, false]));
+}
+
+export function enterPlayingPhase(game: GameState): GameState {
+  return beginTurn({ ...game, phase: 'playing' });
 }

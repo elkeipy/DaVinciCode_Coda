@@ -13,11 +13,13 @@ import type {
 } from '@davinci/shared';
 import {
   MAX_PLAYERS,
-  advanceTurn,
   allPlayersJokerReady,
+  applyPass,
+  applyPenaltyTile,
+  createInitialPassUnlocked,
   dealTiles,
+  enterPlayingPhase,
   evaluateGuess,
-  getWinner,
   markJokerReady,
   placeJokerTile,
   sortTiles,
@@ -249,7 +251,7 @@ export class AppStore {
     if (room.playerIds.length < 2 || room.playerIds.length > MAX_PLAYERS) {
       throw new Error('Need 2-4 players');
     }
-    const hands = dealTiles(room.playerIds.length);
+    const { hands, drawPile } = dealTiles(room.playerIds.length);
     const boards: Record<string, PlayerBoard> = {};
     room.playerIds.forEach((sessionId, index) => {
       const session = this.sessions.get(sessionId)!;
@@ -267,7 +269,7 @@ export class AppStore {
       };
     });
     const hasJokerSetup = Object.values(boards).some((b) => !b.jokerReady);
-    const game: GameState = {
+    let game: GameState = {
       roomId,
       boards,
       turnOrder: [...room.playerIds],
@@ -276,7 +278,14 @@ export class AppStore {
       winnerId: null,
       winnerNickname: null,
       actionLog: [],
+      drawPile,
+      drawnTileId: null,
+      passUnlocked: createInitialPassUnlocked(room.playerIds),
+      pendingPenalty: null,
     };
+    if (!hasJokerSetup) {
+      game = enterPlayingPhase(game);
+    }
     room.status = 'playing';
     this.games.set(roomId, game);
     return game;
@@ -304,8 +313,11 @@ export class AppStore {
     const updatedBoard = markJokerReady({ ...board, tiles: newTiles });
     game.boards[sessionId] = updatedBoard;
     if (allPlayersJokerReady(game.boards)) {
-      game.phase = 'playing';
+      const playing = enterPlayingPhase({ ...game, phase: 'playing' });
+      this.games.set(roomId, playing);
+      return playing;
     }
+    this.games.set(roomId, game);
     return game;
   }
 
@@ -323,6 +335,9 @@ export class AppStore {
     const currentId = game.turnOrder[game.currentTurnIndex];
     if (currentId !== guesserId) {
       throw new Error('Not your turn');
+    }
+    if (game.pendingPenalty) {
+      throw new Error('Resolve penalty first');
     }
     const guesser = game.boards[guesserId];
     if (guesser.eliminated || guesser.spectator) {
@@ -350,26 +365,29 @@ export class AppStore {
     if (board.eliminated) {
       throw new Error('Cannot pass while eliminated');
     }
-    const action = {
-      id: randomUUID(),
-      timestamp: Date.now(),
-      text: `${board.nickname} 패스`,
-    };
-    let updated = advanceTurn({ ...game, actionLog: [...game.actionLog, action] });
-    const winner = getWinner(updated);
-    if (winner) {
-      updated = {
-        ...updated,
-        phase: 'finished',
-        winnerId: winner.winnerId,
-        winnerNickname: winner.winnerNickname,
-      };
-      const room = this.rooms.get(roomId);
-      if (room) {
-        room.status = 'finished';
-      }
+    if (game.pendingPenalty) {
+      throw new Error('Resolve penalty first');
     }
+    const updated = applyPass(game, sessionId);
     this.games.set(roomId, updated);
+    const room = this.rooms.get(roomId);
+    if (room && updated.phase === 'finished') {
+      room.status = 'finished';
+    }
+    return updated;
+  }
+
+  penalty(roomId: string, sessionId: string, tileId: string): GameState {
+    const game = this.games.get(roomId);
+    if (!game || game.phase !== 'playing') {
+      throw new Error('Game not in playing phase');
+    }
+    const updated = applyPenaltyTile(game, sessionId, tileId);
+    this.games.set(roomId, updated);
+    const room = this.rooms.get(roomId);
+    if (room && updated.phase === 'finished') {
+      room.status = 'finished';
+    }
     return updated;
   }
 

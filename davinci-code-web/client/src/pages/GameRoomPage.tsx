@@ -49,6 +49,9 @@ export default function GameRoomPage() {
   const isFinished = gameState?.phase === 'finished';
   const isSpectator = myBoard?.spectator ?? false;
   const needsJoker = isJokerSetup && myBoard && !myBoard.jokerReady && myBoard.tiles.some((t) => t.value === 'joker');
+  const pendingPenalty = gameState?.pendingPenalty === sessionId;
+  const canPass = Boolean(gameState?.passUnlocked[sessionId ?? '']);
+  const drawnTileId = gameState?.drawnTileId;
 
   const handleLeave = () => {
     getSocket().emit('room:leave');
@@ -57,6 +60,13 @@ export default function GameRoomPage() {
   };
 
   const handleTileSelect = (targetSessionId: string, index: number) => {
+    if (pendingPenalty && targetSessionId === sessionId) {
+      const tile = myBoard?.tiles[index];
+      if (tile && !tile.revealed) {
+        getSocket().emit('game:penalty', { tileId: tile.id });
+      }
+      return;
+    }
     if (!isMyTurn || isSpectator || targetSessionId === sessionId) {
       return;
     }
@@ -87,6 +97,12 @@ export default function GameRoomPage() {
                 currentNickname={currentTurnId ? boards[currentTurnId]?.nickname ?? null : null}
                 isMyTurn={isMyTurn}
               />
+              {drawnTileId && isMyTurn && (
+                <p className="text-sm text-amber-400 px-2">이번 턴 드로우 타일이 보드에 추가되었습니다.</p>
+              )}
+              {pendingPenalty && (
+                <p className="text-sm text-red-400 px-2">패널티: 공개할 본인 타일을 선택하세요.</p>
+              )}
               <GameLog actions={gameState.actionLog} />
               {Object.entries(boards).map(([id, board]) => (
                 <PlayerBoardView
@@ -94,7 +110,10 @@ export default function GameRoomPage() {
                   board={board}
                   isOwn={id === sessionId}
                   isCurrentTurn={id === currentTurnId}
-                  canSelect={isPlaying && isMyTurn && !isSpectator && id !== sessionId}
+                  canSelect={
+                    (pendingPenalty && id === sessionId) ||
+                    (isPlaying && isMyTurn && !isSpectator && !pendingPenalty && id !== sessionId)
+                  }
                   onTileSelect={(index) => handleTileSelect(id, index)}
                 />
               ))}
@@ -133,7 +152,7 @@ export default function GameRoomPage() {
               {room.players.length < 2 ? '2인 이상 필요' : '방장 시작 대기'}
             </p>
           )
-        ) : isPlaying && isMyTurn && !isSpectator ? (
+        ) : isPlaying && isMyTurn && !isSpectator && !pendingPenalty ? (
           <div className="flex gap-2">
             <button
               type="button"
@@ -142,13 +161,15 @@ export default function GameRoomPage() {
             >
               추리
             </button>
-            <button
-              type="button"
-              onClick={() => getSocket().emit('game:pass')}
-              className="flex-1 rounded-lg border border-slate-500 py-3 min-h-[44px]"
-            >
-              패스
-            </button>
+            {canPass && (
+              <button
+                type="button"
+                onClick={() => getSocket().emit('game:pass')}
+                className="flex-1 rounded-lg border border-slate-500 py-3 min-h-[44px]"
+              >
+                패스
+              </button>
+            )}
           </div>
         ) : null
       }

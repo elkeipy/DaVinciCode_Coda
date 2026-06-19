@@ -228,6 +228,20 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('game:penalty', ({ tileId }: { tileId: string }) => {
+    const session = store.getSessionBySocket(socket.id);
+    if (!session?.roomId) {
+      return;
+    }
+    try {
+      store.penalty(session.roomId, session.sessionId, tileId);
+      emitGame(session.roomId);
+      emitRoom(session.roomId);
+    } catch (e) {
+      socket.emit('error', { code: 'PENALTY_FAILED', message: (e as Error).message });
+    }
+  });
+
   socket.on('game:reset', () => {
     const session = store.getSessionBySocket(socket.id);
     if (!session?.roomId) {

@@ -46,6 +46,7 @@ npm run dev -w client   # 터미널 2 → :5173
 
 - repo 루트(`DaVinciCode_Coda/`)에서 `npm run dev`
 - 포트 랜덤 할당으로 우회 (프록시·Socket URL 불일치 유발) — **정책: 고정 포트 유지**
+- `shared` 소스만 수정하고 `dist` 미빌드 상태로 서버 실행 (`applyPass` export 에러) — `npm run dev`가 자동 빌드함
 
 ## 확인
 

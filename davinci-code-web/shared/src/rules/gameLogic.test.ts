@@ -1,0 +1,66 @@
+import { describe, expect, it } from 'vitest';
+import { dealTiles } from './deck.js';
+import { beginTurn, createInitialPassUnlocked, evaluateGuess } from './gameLogic.js';
+import type { GameState, PlayerBoard } from '../types.js';
+
+function mockBoard(sessionId: string, nickname: string): PlayerBoard {
+  return {
+    sessionId,
+    nickname,
+    tiles: [
+      { id: 't1', value: 1, color: 'black', revealed: false, position: 0 },
+      { id: 't2', value: 5, color: 'white', revealed: false, position: 1 },
+    ],
+    eliminated: false,
+    spectator: false,
+    jokerReady: true,
+  };
+}
+
+function baseGame(): GameState {
+  const a = 'player-a';
+  const b = 'player-b';
+  const { drawPile } = dealTiles(2);
+  return {
+    roomId: 'room-1',
+    boards: { [a]: mockBoard(a, 'A'), [b]: mockBoard(b, 'B') },
+    turnOrder: [a, b],
+    currentTurnIndex: 0,
+    phase: 'playing',
+    winnerId: null,
+    winnerNickname: null,
+    actionLog: [],
+    drawPile,
+    drawnTileId: null,
+    passUnlocked: createInitialPassUnlocked([a, b]),
+    pendingPenalty: null,
+  };
+}
+
+describe('beginTurn', () => {
+  it('draws a tile into current player board', () => {
+    const game = baseGame();
+    const pileBefore = game.drawPile.length;
+    const tilesBefore = game.boards['player-a'].tiles.length;
+    const updated = beginTurn(game);
+    expect(updated.drawPile.length).toBe(pileBefore - 1);
+    expect(updated.boards['player-a'].tiles.length).toBe(tilesBefore + 1);
+    expect(updated.drawnTileId).not.toBeNull();
+  });
+});
+
+describe('evaluateGuess', () => {
+  it('unlocks pass on success', () => {
+    const game = beginTurn(baseGame());
+    const { game: updated } = evaluateGuess(game, 'player-a', 'player-b', 0, { type: 'number', value: 1 });
+    expect(updated.passUnlocked['player-a']).toBe(true);
+  });
+
+  it('reveals drawn tile on failure when pile was drawn', () => {
+    const started = beginTurn(baseGame());
+    const drawnId = started.drawnTileId!;
+    const { game: updated } = evaluateGuess(started, 'player-a', 'player-b', 0, { type: 'number', value: 9 });
+    const tile = updated.boards['player-a'].tiles.find((t) => t.id === drawnId);
+    expect(tile?.revealed).toBe(true);
+  });
+});

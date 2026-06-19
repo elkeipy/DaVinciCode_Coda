@@ -45,6 +45,14 @@ export interface GameState {
   winnerId: string | null;
   winnerNickname: string | null;
   actionLog: GameAction[];
+  /** 남은 중앙 더미 */
+  drawPile: Tile[];
+  /** 이번 턴에 드로우한 타일 id (패널티용) */
+  drawnTileId: string | null;
+  /** 추리 성공 후 패스 가능 */
+  passUnlocked: Record<string, boolean>;
+  /** 오답·더미 소진 시 본인 타일 선택 패널티 대기 */
+  pendingPenalty: string | null;
 }
 
 export interface PlayerSession {

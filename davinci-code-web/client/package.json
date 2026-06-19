@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:pages": "node ../scripts/build-client-pages.mjs",
     "preview": "vite preview",
+    "preview:pages": "vite preview --base /DaVinciCode_Coda/",
     "test:e2e": "playwright test"
   },
   "dependencies": {

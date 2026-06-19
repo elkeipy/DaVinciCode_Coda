@@ -3,7 +3,7 @@
 > **결정 사항**: 클라이언트 **GitHub Pages** · 서버 **Render**  
 > **대상**: `davinci-code-web/` monorepo (React + Vite / Express + Socket.io)  
 > **작성일**: 2026-06-19  
-> **상태**: 계획 (미구현)
+> **상태**: Phase 0~2 완료 · Phase 3 (GitHub Actions) 대기
 
 ---
 
@@ -11,8 +11,8 @@
 
 | 항목 | 선택 | URL 예시 |
 |------|------|----------|
-| 클라이언트 | GitHub Pages | `https://<user>.github.io/DaVinciCode_Coda/` |
-| 서버 | Render Web Service | `https://davinci-code-api.onrender.com` |
+| 클라이언트 | GitHub Pages | `https://elkeipy.github.io/DaVinciCode_Coda/` |
+| 서버 | Render Web Service | `https://davincicode-coda.onrender.com` |
 | 통신 | Socket.io (WebSocket) | 클라 빌드 시 `VITE_SOCKET_URL`로 서버 URL 주입 |
 
 GitHub Pages는 **정적 파일만** 호스팅한다. Express + Socket.io 서버는 Render에 별도 배포한다.
@@ -52,18 +52,18 @@ GitHub Pages는 **정적 파일만** 호스팅한다. Express + Socket.io 서버
 
 ### 3.2 배포 전 **반드시** 수정·추가할 것
 
-| # | 작업 | 이유 | 우선순위 |
-|---|------|------|----------|
-| 1 | `client/vite.config.ts`에 `base` 설정 | GitHub Pages는 서브경로(`/DaVinciCode_Coda/`) 서빙 | P0 |
-| 2 | `BrowserRouter`에 `basename` | SPA 라우트(`/lobby`, `/room/:id`) 404 방지 | P0 |
-| 3 | 빌드 후 `404.html` = `index.html` 복사 | GitHub Pages SPA fallback | P0 |
-| 4 | GitHub Actions 워크플로 생성 | Pages 자동 배포 | P0 |
-| 5 | Render Web Service 생성 + env 설정 | 서버 호스팅 | P0 |
-| 6 | `CLIENT_ORIGIN` = Pages URL | 프로덕션 CORS | P0 |
-| 7 | 클라 빌드 시 `VITE_SOCKET_URL` = Render URL | 소켓 연결 대상 | P0 |
-| 8 | Render `render.yaml` (선택) | IaC·재현성 | P1 |
-| 9 | 슬립 대응 UX (연결 중·재시도 메시지) | Render 무료 티어 15분 슬립 | P1 |
-| 10 | `index.md` / wiki 배포 문서 링크 | 인수인계 | P2 |
+| # | 작업 | 이유 | 우선순위 | 상태 |
+|---|------|------|----------|------|
+| 1 | `client/vite.config.ts`에 `base` 설정 | GitHub Pages는 서브경로(`/DaVinciCode_Coda/`) 서빙 | P0 | ✅ |
+| 2 | `BrowserRouter`에 `basename` | SPA 라우트(`/lobby`, `/room/:id`) 404 방지 | P0 | ✅ |
+| 3 | 빌드 후 `404.html` = `index.html` 복사 | GitHub Pages SPA fallback | P0 | ✅ |
+| 4 | GitHub Actions 워크플로 생성 | Pages 자동 배포 | P0 | Phase 3 |
+| 5 | Render Web Service 생성 + env 설정 | 서버 호스팅 | P0 | ✅ |
+| 6 | `CLIENT_ORIGIN` = Pages URL | 프로덕션 CORS | P0 | Phase 4 |
+| 7 | 클라 빌드 시 `VITE_SOCKET_URL` = Render URL | 소켓 연결 대상 | P0 | Phase 3 |
+| 8 | Render `render.yaml` (선택) | IaC·재현성 | P1 | |
+| 9 | 슬립 대응 UX (연결 중·재시도 메시지) | Render 무료 티어 15분 슬립 | P1 | |
+| 10 | `index.md` / wiki 배포 문서 링크 | 인수인계 | P2 | ✅ |
 
 ### 3.3 수정 불필요 (오해 방지)
 
@@ -269,23 +269,23 @@ const corsOrigin = isDev ? true : CLIENT_ORIGIN;
 
 ## 7. 배포 단계 (롤아웃 플랜)
 
-### Phase 0 — 사전 준비 (0.5일)
+### Phase 0 — 사전 준비 (0.5일) ✅
 
-- [ ] Render 계정·GitHub repo 연동
-- [ ] GitHub Pages Actions 권한 활성화
-- [ ] 배포용 브랜치 정책: `main` push 시 자동 배포
+- [x] Render 계정·GitHub repo 연동
+- [x] GitHub Pages Actions 권한 활성화
+- [x] 배포용 브랜치 정책: `main` push 시 자동 배포
 
-### Phase 1 — 서버만 배포 (0.5일)
+### Phase 1 — 서버만 배포 (0.5일) ✅
 
-- [ ] Render Web Service 생성
-- [ ] `/health` 응답 확인
-- [ ] 로컬 클라 + `VITE_SOCKET_URL=<Render>` 수동 빌드로 E2E 스모크
+- [x] Render Web Service 생성 (`davincicode-coda.onrender.com`)
+- [x] `/health` 응답 확인 (`{"ok":true}`)
+- [x] Render 소켓 스모크 (`scripts/smoke-remote.mjs` — `lobby:join` 성공)
 
-### Phase 2 — 클라이언트 코드 수정 (0.5일)
+### Phase 2 — 클라이언트 코드 수정 (0.5일) ✅
 
-- [ ] `base` / `basename` / `404.html` 적용
-- [ ] `build:pages` 스크립트 추가
-- [ ] 로컬 `vite preview`로 서브경로 라우팅 확인
+- [x] `base` / `basename` / `404.html` 적용
+- [x] `build:pages` 스크립트 (`scripts/build-client-pages.mjs`)
+- [x] 로컬 `npm run build:pages` 빌드 검증 (`/DaVinciCode_Coda/` asset 경로)
 
 ### Phase 3 — GitHub Pages CI (0.5일)
 
@@ -382,17 +382,23 @@ NODE_ENV=production CLIENT_ORIGIN=http://localhost:4173 npm run start -w server
 # 로컬 개발
 cd davinci-code-web && npm run dev
 
-# 프로덕션 URL (배포 후 채움)
-CLIENT (Pages):  https://<GITHUB_USER>.github.io/DaVinciCode_Coda/
-SERVER (Render): https://<SERVICE_NAME>.onrender.com
-HEALTH:          https://<SERVICE_NAME>.onrender.com/health
+# GitHub Pages용 클라 빌드 (로컬 검증)
+cd davinci-code-web
+$env:VITE_SOCKET_URL='https://davincicode-coda.onrender.com'
+npm run build:pages
+npm run preview:pages -w client
 
-# GitHub Actions Variable
-VITE_SOCKET_URL=https://<SERVICE_NAME>.onrender.com
+# 프로덕션 URL
+CLIENT (Pages):  https://elkeipy.github.io/DaVinciCode_Coda/
+SERVER (Render): https://davincicode-coda.onrender.com
+HEALTH:          https://davincicode-coda.onrender.com/health
+
+# GitHub Actions Variable (Phase 3)
+VITE_SOCKET_URL=https://davincicode-coda.onrender.com
 
 # Render Env
 NODE_ENV=production
-CLIENT_ORIGIN=https://<GITHUB_USER>.github.io
+CLIENT_ORIGIN=https://elkeipy.github.io
 ```
 
 ---
@@ -411,8 +417,9 @@ CLIENT_ORIGIN=https://<GITHUB_USER>.github.io
 | 날짜 | 결정 |
 |------|------|
 | 2026-06-19 | 클라 GitHub Pages + 서버 Render로 확정 |
-| — | Fly.io·Oracle VM은 비용/난이도 대비 보류 |
+| 2026-06-19 | Phase 0~1 완료 — Render `davincicode-coda.onrender.com`, health·소켓 스모크 통과 |
+| 2026-06-19 | Phase 2 완료 — `base`/`basename`/`build:pages`/`404.html` |
 
 ---
 
-*다음 작업: Phase 1 Render 배포 또는 Phase 2 클라 `base`/Actions 구현 중 선택 진행.*
+*다음 작업: **Phase 3** — GitHub Actions 워크플로 + `VITE_SOCKET_URL` 변수 등록.*

@@ -27,6 +27,8 @@ npm run dev
 GitHub repo:    https://github.com/elkeipy/DaVinciCode_Coda
 Pages (예정):   https://elkeipy.github.io/DaVinciCode_Coda/
 CLIENT_ORIGIN:  https://elkeipy.github.io
-                ↑ 경로(/DaVinciCode_Coda) 없음! CORS는 origin만 씀
-Render 서버:    (Phase 1 후에 https://xxxx.onrender.com)
+Render 서버:    https://davincicode-coda.onrender.com
+VITE_SOCKET_URL https://davincicode-coda.onrender.com
 ```
+
+배포 계획·진행: [[DeployPlan]]

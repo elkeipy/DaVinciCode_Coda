@@ -4,7 +4,7 @@ category: sources
 created: 2026-06-18
 updated: 2026-06-19
 status: active
-sources: ["[[FirstPlan]]", "[[PROGRESS]]"]
+sources: ["[[FirstPlan]]", "[[PROGRESS]]", "[[DeployPlan]]"]
 ---
 
 # davinci-code-web 구현 v1 — 출처 카드
@@ -49,6 +49,16 @@ cd davinci-code-web && npm install && npm run dev
 
 - `npm test` — shared vitest (8 tests)
 - `npm run test:e2e` — Playwright (2 tests)
+- `npm run smoke:remote` / `npm run smoke:pages` — 프로덕션 스모크
+
+## 프로덕션 배포
+
+| | URL |
+|--|-----|
+| 클라이언트 | https://elkeipy.github.io/DaVinciCode_Coda/ |
+| 서버 | https://davincicode-coda.onrender.com |
+
+→ [[dev-tasks/deploy-render-pages]], [[DeployPlan]]
 
 ## 관련 문서
 
@@ -60,5 +70,5 @@ cd davinci-code-web && npm install && npm run dev
 
 ## 다음 액션
 
-- 실플레이 QA (2~4인)
-- 배포 (Vercel + Railway)
+- Render Free 슬립 UX 개선 (선택)
+- 계정·전적 영속화 (PostgreSQL/Redis) — 정식 서비스 전환 시

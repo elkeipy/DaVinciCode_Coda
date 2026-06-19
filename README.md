@@ -22,14 +22,16 @@ npm install
 npm run dev
 ```
 
-## 배포정보
-```
-GitHub repo:    https://github.com/elkeipy/DaVinciCode_Coda
-Pages (예정):   https://elkeipy.github.io/DaVinciCode_Coda/
+## 배포 (라이브)
+
+| | URL |
+|--|-----|
+| **플레이** | https://elkeipy.github.io/DaVinciCode_Coda/ |
+| **API** | https://davincicode-coda.onrender.com |
+
+```text
 CLIENT_ORIGIN:  https://elkeipy.github.io,http://localhost:5173
-Pages URL:      https://elkeipy.github.io/DaVinciCode_Coda/
-Render 서버:    https://davincicode-coda.onrender.com
 VITE_SOCKET_URL https://davincicode-coda.onrender.com
 ```
 
-배포 계획·진행: [[DeployPlan]]
+상세: [[DeployPlan]], [[dev-tasks/deploy-render-pages]]

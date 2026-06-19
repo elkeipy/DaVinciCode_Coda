@@ -2,7 +2,7 @@
 
 | 항목 | 값 |
 |------|-----|
-| **전체 진행률** | **100%** (17/17) — 배포 Phase 2/5 |
+| **전체 진행률** | **100%** (17/17 + 배포 5/5) |
 | 마지막 갱신 | 2026-06-19 |
 | 코드 경로 | `davinci-code-web/` |
 
@@ -36,9 +36,12 @@
 | 1 | Render 서버 배포 | ✅ `davincicode-coda.onrender.com` |
 | 2 | 클라 Pages 빌드 설정 | ✅ `build:pages` |
 | 3 | GitHub Actions CI | ✅ workflow 추가 |
-| 4 | 프로덕션 연동·플레이 테스트 | 🔄 CORS·UX 적용, Render env 대기 |
+| 4 | 프로덕션 연동·플레이 테스트 | ✅ QA 통과 (슬립 테스트 제외) |
+| 5 | 문서·인수인계 | ✅ |
 
-→ [[DeployPlan]]
+**라이브**: https://elkeipy.github.io/DaVinciCode_Coda/
+
+→ [[DeployPlan]], [[dev-tasks/deploy-render-pages]]
 
 ## 실행 방법
 

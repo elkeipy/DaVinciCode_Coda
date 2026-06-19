@@ -21,3 +21,12 @@ cd davinci-code-web
 npm install
 npm run dev
 ```
+
+## 배포정보
+```
+GitHub repo:    https://github.com/elkeipy/DaVinciCode_Coda
+Pages (예정):   https://elkeipy.github.io/DaVinciCode_Coda/
+CLIENT_ORIGIN:  https://elkeipy.github.io
+                ↑ 경로(/DaVinciCode_Coda) 없음! CORS는 origin만 씀
+Render 서버:    (Phase 1 후에 https://xxxx.onrender.com)
+```

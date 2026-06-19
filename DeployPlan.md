@@ -3,7 +3,7 @@
 > **결정 사항**: 클라이언트 **GitHub Pages** · 서버 **Render**  
 > **대상**: `davinci-code-web/` monorepo (React + Vite / Express + Socket.io)  
 > **작성일**: 2026-06-19  
-> **상태**: Phase 0~2 완료 · Phase 3 (GitHub Actions) 대기
+> **상태**: Phase 0~3 구현 완료 · Phase 4 (프로덕션 연동) 대기
 
 ---
 
@@ -57,10 +57,10 @@ GitHub Pages는 **정적 파일만** 호스팅한다. Express + Socket.io 서버
 | 1 | `client/vite.config.ts`에 `base` 설정 | GitHub Pages는 서브경로(`/DaVinciCode_Coda/`) 서빙 | P0 | ✅ |
 | 2 | `BrowserRouter`에 `basename` | SPA 라우트(`/lobby`, `/room/:id`) 404 방지 | P0 | ✅ |
 | 3 | 빌드 후 `404.html` = `index.html` 복사 | GitHub Pages SPA fallback | P0 | ✅ |
-| 4 | GitHub Actions 워크플로 생성 | Pages 자동 배포 | P0 | Phase 3 |
+| 4 | GitHub Actions 워크플로 생성 | Pages 자동 배포 | P0 | ✅ |
 | 5 | Render Web Service 생성 + env 설정 | 서버 호스팅 | P0 | ✅ |
 | 6 | `CLIENT_ORIGIN` = Pages URL | 프로덕션 CORS | P0 | Phase 4 |
-| 7 | 클라 빌드 시 `VITE_SOCKET_URL` = Render URL | 소켓 연결 대상 | P0 | Phase 3 |
+| 7 | 클라 빌드 시 `VITE_SOCKET_URL` = Render URL | 소켓 연결 대상 | P0 | ✅ |
 | 8 | Render `render.yaml` (선택) | IaC·재현성 | P1 | |
 | 9 | 슬립 대응 UX (연결 중·재시도 메시지) | Render 무료 티어 15분 슬립 | P1 | |
 | 10 | `index.md` / wiki 배포 문서 링크 | 인수인계 | P2 | ✅ |
@@ -141,16 +141,11 @@ jobs:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: davinci-code-web/package-lock.json
-      - name: Install & build client
+      - name: Install and build for Pages
         working-directory: davinci-code-web
         env:
-          GITHUB_PAGES: 'true'
-          VITE_SOCKET_URL: ${{ vars.VITE_SOCKET_URL }}
-        run: |
-          npm ci
-          npm run build -w shared
-          npm run build:pages -w client
-          cp client/dist/index.html client/dist/404.html
+          VITE_SOCKET_URL: ${{ vars.VITE_SOCKET_URL || 'https://davincicode-coda.onrender.com' }}
+        run: npm ci && npm run build:pages
       - uses: actions/upload-pages-artifact@v3
         with:
           path: davinci-code-web/client/dist
@@ -287,11 +282,11 @@ const corsOrigin = isDev ? true : CLIENT_ORIGIN;
 - [x] `build:pages` 스크립트 (`scripts/build-client-pages.mjs`)
 - [x] 로컬 `npm run build:pages` 빌드 검증 (`/DaVinciCode_Coda/` asset 경로)
 
-### Phase 3 — GitHub Pages CI (0.5일)
+### Phase 3 — GitHub Pages CI (0.5일) ✅
 
-- [ ] Actions 워크플로 추가
-- [ ] `VITE_SOCKET_URL` 변수 등록
-- [ ] 첫 배포 성공 확인
+- [x] Actions 워크플로 추가 (`.github/workflows/deploy-pages.yml`)
+- [x] `VITE_SOCKET_URL` — workflow 기본값 + repo Variable 권장
+- [ ] 첫 배포 성공 확인 (push 후 Actions 탭에서 확인)
 
 ### Phase 4 — 프로덕션 연동 (0.5일)
 
@@ -422,4 +417,4 @@ CLIENT_ORIGIN=https://elkeipy.github.io
 
 ---
 
-*다음 작업: **Phase 3** — GitHub Actions 워크플로 + `VITE_SOCKET_URL` 변수 등록.*
+*다음 작업: **Phase 4** — Render `CLIENT_ORIGIN`을 `https://elkeipy.github.io`로 변경 후 Pages에서 플레이 테스트.*

@@ -25,4 +25,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-19 14:00 | save | v0.6 구현·shared 빌드 fix git 저장 | [[FirstPlan]], [[concepts/game-rules]], [[sources/implementation-v1]]
 2026-06-19 16:00 | save | FirstPlan 룰 10 — 추리 성공 후 재추리/패스 선택, canContinueTurn | [[FirstPlan]], [[concepts/game-rules]], [[sources/implementation-v1]]
 2026-06-19 18:00 | save | 배포 Phase 0~2 — Render 서버·Pages 클라 build:pages | [[DeployPlan]], [[README]]
+2026-06-19 19:00 | save | 배포 Phase 3 — GitHub Actions deploy-pages workflow | [[DeployPlan]]
 

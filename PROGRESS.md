@@ -35,7 +35,7 @@
 | 0 | Render·Pages 사전 준비 | ✅ |
 | 1 | Render 서버 배포 | ✅ `davincicode-coda.onrender.com` |
 | 2 | 클라 Pages 빌드 설정 | ✅ `build:pages` |
-| 3 | GitHub Actions CI | ⏳ |
+| 3 | GitHub Actions CI | ✅ workflow 추가 |
 | 4 | 프로덕션 연동·플레이 테스트 | ⏳ |
 
 → [[DeployPlan]]

@@ -2,7 +2,7 @@
 title: GitHub Pages + Render 배포 완료
 category: dev-tasks
 created: 2026-06-19
-updated: 2026-06-19
+updated: 2026-06-25
 status: completed
 sources: ["[[DeployPlan]]", "[[README]]"]
 ---
@@ -36,7 +36,7 @@ sources: ["[[DeployPlan]]", "[[README]]"]
 ## GitHub Actions
 
 - 워크플로: `.github/workflows/deploy-pages.yml`
-- 트리거: `main` push (`davinci-code-web/client|shared` 등 변경)
+- 트리거: `main` push (`VERSION`, `davinci-code-web/client|shared` 등 변경)
 - 빌드: `npm ci && npm run build:pages`
 - Variable (선택): `VITE_SOCKET_URL` = `https://davincicode-coda.onrender.com`
 
@@ -77,3 +77,8 @@ npm run smoke:pages            # Pages origin CORS 스모크
 - [[DeployPlan]]
 - [[sources/implementation-v1]]
 - [[errors/2026-06-18-dev-local-run]]
+
+## 변경 이력
+
+- 2026-06-25: 버전 검증용 `VERSION` 마이너 업데이트(`1.0.0` → `1.1.0`) 시에도
+  GitHub Pages 배포가 자동 트리거되도록 workflow path에 `VERSION` 추가

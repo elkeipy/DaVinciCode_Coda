@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+import type { FormEvent } from 'react';
 import type { ChatMessage } from '@davinci/shared';
 
 interface ChatBoxProps {
@@ -7,9 +9,35 @@ interface ChatBoxProps {
   collapsed?: boolean;
   onToggle?: () => void;
 }
+const AUTO_SCROLL_THRESHOLD_PX = 16;
 
 export default function ChatBox({ messages, onSend, placeholder = '메시지 입력', collapsed, onToggle }: ChatBoxProps) {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const messageContainerRef = useRef<HTMLDivElement | null>(null);
+  const shouldAutoScrollRef = useRef(true);
+  const scrollToBottom = (): void => {
+    if (!messageContainerRef.current) {
+      return;
+    }
+    messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+  };
+  useEffect(() => {
+    if (collapsed || !messageContainerRef.current) {
+      return;
+    }
+    if (!shouldAutoScrollRef.current) {
+      return;
+    }
+    scrollToBottom();
+  }, [messages, collapsed]);
+  const handleMessageScroll = (): void => {
+    if (!messageContainerRef.current) {
+      return;
+    }
+    const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+    shouldAutoScrollRef.current = distanceFromBottom <= AUTO_SCROLL_THRESHOLD_PX;
+  };
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
     const input = form.elements.namedItem('text') as HTMLInputElement;
@@ -30,7 +58,11 @@ export default function ChatBox({ messages, onSend, placeholder = '메시지 입
       )}
       {!collapsed && (
         <>
-          <div className="h-32 overflow-y-auto px-3 py-2 space-y-1 text-sm">
+          <div
+            ref={messageContainerRef}
+            onScroll={handleMessageScroll}
+            className="h-32 overflow-y-auto px-3 py-2 space-y-1 text-sm"
+          >
             {messages.map((m) => (
               <div key={m.id}>
                 <span className="text-primary font-medium">{m.senderNickname}</span>

@@ -29,4 +29,5 @@ YYYY-MM-DD HH:mm | command | summary | linked files
 2026-06-19 20:00 | save | 배포 Phase 4 — CORS 정규화·프로덕션 UX·Pages 스모크 | [[DeployPlan]], [[README]]
 2026-06-19 21:00 | save | 배포 완료 — 프로덕션 QA·wiki deploy-render-pages | [[DeployPlan]], [[dev-tasks/deploy-render-pages]], [[PROGRESS]]
 2026-06-19 22:00 | save | 프로토타입 v1.0.0 — git tag, CHANGELOG, GitHub Release | [[CHANGELOG]], [[README]]
+2026-06-25 23:22 | save | 버전 1.1.0 검증 및 Pages 자동 트리거 보강(VERSION path) | [[dev-tasks/deploy-render-pages]], [[VERSION]]
 
